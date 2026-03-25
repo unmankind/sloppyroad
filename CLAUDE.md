@@ -1,7 +1,7 @@
 # SloppyRoad — Certified AI Slop (formerly AIWN 2.0)
 
 ## Project Overview
-**SloppyRoad** (sloppyroad.com) — AI-generated progression fantasy web novels. A parody of Royal Road with self-aware, sardonic voice. The premise: "Why worry whether your favorite web novel is AI slop when you could know for sure?" Multi-user platform where authors generate worlds and write chapter-by-chapter novels with AI. Anonymous readers follow via share links.
+**SloppyRoad** (sloppyroad.com) — AI-generated progression fantasy web novels. A sardonic, self-aware web fiction platform. The premise: "Why worry whether your favorite web novel is AI slop when you could know for sure?" Multi-user platform where authors generate worlds and write chapter-by-chapter novels with AI. Anonymous readers follow via share links.
 
 ## Tech Stack
 - **Backend**: FastAPI (async, SSE streaming, Pydantic built-in)
@@ -148,7 +148,7 @@ Throughout: SENTINEL
 
 **Security audit**: Comprehensive audit completed March 2026 — 40 issues filed, 34 fixed across 5 waves (auth ownership checks, XSS, worker reliability, budget race conditions, CI/CD improvements). PGVectorStore fully implemented (not a stub).
 
-**Brand**: SloppyRoad — sardonic, self-aware AI slop parody. All user-facing text uses lighthearted, self-deprecating humor about AI-generated content.
+**Brand**: SloppyRoad — sardonic, self-aware AI slop. All user-facing text uses lighthearted, self-deprecating humor about AI-generated content.
 
 ## Key Conventions
 

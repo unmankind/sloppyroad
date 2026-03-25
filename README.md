@@ -1,6 +1,6 @@
 # SloppyRoad
 
-**AI-generated progression fantasy web novels.** A parody of Royal Road with a sardonic, self-aware voice. The premise: *"Why worry whether your favorite web novel is AI slop when you could know for sure?"*
+**AI-generated progression fantasy web novels.** A sardonic, self-aware web fiction platform. The premise: *"Why worry whether your favorite web novel is AI slop when you could know for sure?"*
 
 Multi-author platform where users generate worlds and write chapter-by-chapter novels with AI. Anonymous readers follow via share links.
 
