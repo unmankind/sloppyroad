@@ -1,0 +1,561 @@
+{% extends "author_base.html" %}
+
+{% block title %}Gallery — {{ selected_novel.title }}{% endblock %}
+
+{% block head_extra %}
+<style>
+  /* Filter tabs */
+  .gallery-tabs {
+    display: flex;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--ink-900);
+    border: 1px solid var(--ink-700);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-xl);
+    overflow-x: auto;
+  }
+  .gallery-tab {
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--parchment-400);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-base);
+    text-decoration: none;
+  }
+  .gallery-tab:hover {
+    color: var(--parchment-200);
+    background: var(--ink-800);
+  }
+  .gallery-tab.active {
+    color: var(--arcane-300);
+    background: rgba(107, 69, 184, 0.12);
+    border-color: var(--arcane-700);
+  }
+
+  /* Asset cards */
+  .gallery-asset-card {
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-base);
+    cursor: pointer;
+  }
+  .gallery-asset-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--arcane-700), var(--ember-500), var(--arcane-700));
+    opacity: 0;
+    transition: opacity var(--transition-base);
+    z-index: 1;
+  }
+  .gallery-asset-card:hover::before {
+    opacity: 1;
+  }
+  .gallery-asset-card:hover {
+    border-color: var(--arcane-700);
+    box-shadow: 0 0 24px rgba(107, 69, 184, 0.1);
+    transform: translateY(-2px);
+  }
+  .gallery-asset-thumb {
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    background: var(--ink-900);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gallery-asset-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+  .gallery-asset-card:hover .gallery-asset-thumb img {
+    transform: scale(1.05);
+  }
+  .gallery-asset-placeholder {
+    font-size: 3rem;
+    color: var(--parchment-600);
+  }
+
+  /* Lightbox */
+  .gallery-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    backdrop-filter: blur(4px);
+  }
+  .gallery-lightbox.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .lightbox-inner {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+  }
+  .lightbox-img {
+    max-width: 100%;
+    max-height: 75vh;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 0 60px rgba(107, 69, 184, 0.15);
+  }
+  .lightbox-meta {
+    text-align: center;
+    max-width: 36rem;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: -2.5rem;
+    right: -1rem;
+    font-size: 1.5rem;
+    color: var(--parchment-400);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--space-xs);
+    transition: color var(--transition-base);
+  }
+  .lightbox-close:hover {
+    color: var(--parchment-100);
+  }
+
+  /* Evolution chain */
+  .evolution-chain {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--ink-900);
+    border: 1px solid var(--ink-700);
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+    margin-bottom: var(--space-lg);
+  }
+  .evolution-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: opacity var(--transition-base);
+  }
+  .evolution-step:hover {
+    opacity: 0.8;
+  }
+  .evolution-step-thumb {
+    width: 4rem;
+    height: 4rem;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 2px solid var(--ink-600);
+    transition: border-color var(--transition-base);
+  }
+  .evolution-step.current .evolution-step-thumb {
+    border-color: var(--arcane-500);
+    box-shadow: 0 0 8px rgba(107, 69, 184, 0.3);
+  }
+  .evolution-step-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .evolution-arrow {
+    color: var(--arcane-600);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  /* Empty state */
+  .gallery-empty {
+    text-align: center;
+    padding: var(--space-3xl) var(--space-lg);
+  }
+  .gallery-empty-icon {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: var(--space-lg);
+    opacity: 0.5;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .gallery-tabs {
+      gap: var(--space-xs);
+    }
+    .gallery-tab {
+      font-size: 0.8rem;
+      padding: var(--space-xs) var(--space-sm);
+    }
+  }
+</style>
+{% endblock %}
+
+{% block author_content %}
+<div class="animate-fade-in">
+  <div class="flex justify-between items-center mb-xl">
+    <h2 class="font-display" style="color: var(--parchment-100);">Gallery</h2>
+    <div class="flex items-center gap-md">
+      {% if failed_images %}
+      <span class="badge badge-danger" style="font-size: 0.8rem;">
+        {{ failed_images | length }} failed
+      </span>
+      {% endif %}
+      {% if assets %}
+      <span class="text-muted text-sm">{{ assets | length }} asset{{ 's' if assets | length != 1 else '' }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Filter Tabs — HTMX powered #}
+  <div class="gallery-tabs" role="tablist">
+    <a href="/novels/{{ novel_id }}/gallery"
+       class="gallery-tab {% if not filter_asset_type %}active{% endif %}"
+       hx-get="/novels/{{ novel_id }}/gallery"
+       hx-target="#gallery-content"
+       hx-select="#gallery-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       role="tab">All</a>
+    {% set tab_types = [('portrait', 'Portraits'), ('world_map', 'Maps'), ('sigil', 'Sigils'), ('scene', 'Scenes')] %}
+    {% for type_val, type_label in tab_types %}
+    <a href="/novels/{{ novel_id }}/gallery?asset_type={{ type_val }}"
+       class="gallery-tab {% if filter_asset_type == type_val %}active{% endif %}"
+       hx-get="/novels/{{ novel_id }}/gallery?asset_type={{ type_val }}"
+       hx-target="#gallery-content"
+       hx-select="#gallery-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       role="tab">{{ type_label }}</a>
+    {% endfor %}
+    {# Show any additional types not in the hardcoded tabs #}
+    {% for t in available_types if t not in ['portrait', 'world_map', 'sigil', 'scene'] %}
+    <a href="/novels/{{ novel_id }}/gallery?asset_type={{ t }}"
+       class="gallery-tab {% if filter_asset_type == t %}active{% endif %}"
+       hx-get="/novels/{{ novel_id }}/gallery?asset_type={{ t }}"
+       hx-target="#gallery-content"
+       hx-select="#gallery-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       role="tab">{{ t | replace('_', ' ') | title }}</a>
+    {% endfor %}
+  </div>
+
+  {# Gallery Content (HTMX swap target) #}
+  <div id="gallery-content">
+    {# Provider not configured notice — shown when there are failed images due to missing provider #}
+    {% if not image_provider_configured and failed_images %}
+    <div class="card mb-xl" style="border-color: var(--ember-700); background: linear-gradient(135deg, rgba(220, 38, 38, 0.06), transparent);">
+      <div style="padding: var(--space-lg); display: flex; align-items: flex-start; gap: var(--space-md);">
+        <span style="font-size: 1.5rem; flex-shrink: 0;">&#9888;</span>
+        <div>
+          <p class="text-sm mb-xs" style="color: var(--ember-300); font-weight: 600;">
+            No image provider configured
+          </p>
+          <p class="text-xs mb-sm" style="color: var(--parchment-400); line-height: 1.5;">
+            Image generation requires a configured provider. Set
+            <code style="color: var(--arcane-300); background: var(--ink-800); padding: 1px 4px; border-radius: 3px;">AIWN_IMAGE_ENABLED=true</code>
+            and one of:
+          </p>
+          <ul class="text-xs" style="color: var(--parchment-500); list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px;">
+            <li><code style="color: var(--arcane-300); background: var(--ink-800); padding: 1px 4px; border-radius: 3px;">AIWN_IMAGE_PROVIDER=replicate</code> + <code style="color: var(--arcane-300); background: var(--ink-800); padding: 1px 4px; border-radius: 3px;">AIWN_REPLICATE_API_TOKEN=&lt;token&gt;</code></li>
+            <li><code style="color: var(--arcane-300); background: var(--ink-800); padding: 1px 4px; border-radius: 3px;">AIWN_IMAGE_PROVIDER=hf-space</code> (free, no token required)</li>
+          </ul>
+          <p class="text-xs mt-sm" style="color: var(--ember-400);">
+            {{ failed_images | length }} image{{ 's' if failed_images | length != 1 else '' }} failed because no provider was available.
+            Configure a provider, then retry them below.
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Failed Images Section — collapsible #}
+    {% if failed_images %}
+    <section class="mb-2xl">
+      <details>
+        <summary class="mb-lg font-display" style="color: var(--ember-400); font-size: 1.1rem; cursor: pointer; list-style: none;">
+          Failed Generations ({{ failed_images | length }})
+          <span style="font-size: 0.8rem; color: var(--parchment-500); margin-left: var(--space-sm);">click to expand</span>
+        </summary>
+      <div class="grid grid-cols-3 gap-lg mt-md">
+        {% for item in failed_images %}
+        <div class="card" id="failed-{{ item.id }}"
+             style="border-color: var(--ember-700); background: linear-gradient(135deg, rgba(220, 38, 38, 0.06), transparent);">
+          <div style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-sm);">
+            <div class="flex items-center gap-sm">
+              <span class="badge badge-danger" style="font-size: 0.75rem;">Failed</span>
+              <span class="text-sm" style="color: var(--parchment-300);">
+                {{ item.asset_type | replace('_', ' ') | title }}
+              </span>
+              {% if item.trigger_chapter %}
+              <span class="text-xs text-muted">&mdash; Ch. {{ item.trigger_chapter }}</span>
+              {% endif %}
+            </div>
+            {% if item.error_message %}
+            <p class="text-xs" style="color: var(--ember-400); word-break: break-word; line-height: 1.5;">
+              {{ item.error_message[:200] }}{{ '...' if item.error_message | length > 200 else '' }}
+            </p>
+            {% else %}
+            <p class="text-xs text-muted">No error details available.</p>
+            {% endif %}
+            <div>
+              <button class="btn btn-secondary btn-sm"
+                      hx-post="/api/novels/{{ novel_id }}/gallery/retry/{{ item.id }}"
+                      hx-target="#failed-{{ item.id }}"
+                      hx-swap="outerHTML"
+                      hx-on::after-request="if(event.detail.successful) this.closest('.card').remove()"
+                      {% if not image_provider_configured %}disabled title="Configure an image provider first"{% endif %}>
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      </details>
+    </section>
+    {% endif %}
+
+    {% if assets_by_type %}
+      {% for type_name, type_assets in assets_by_type.items() %}
+      <section class="mb-2xl">
+        <h3 class="mb-lg font-display" style="color: var(--arcane-400); font-size: 1.1rem;">
+          {% if 'portrait' in type_name %}&#128100;{% elif 'map' in type_name %}&#127758;{% elif 'sigil' in type_name %}&#9883;{% elif 'scene' in type_name %}&#127749;{% else %}&#128444;{% endif %}
+          {{ type_name | replace('_', ' ') | title }}
+        </h3>
+
+        {# Evolution chains for this type #}
+        {% set ns = namespace(chains_shown=false) %}
+        {% for asset in type_assets if asset.parent_asset_id is none and asset.id in evolution_chains %}
+          {% if not ns.chains_shown %}
+            {% set ns.chains_shown = true %}
+          {% endif %}
+          <div class="evolution-chain">
+            <div class="evolution-step {% if asset.is_current %}current{% endif %}"
+                 onclick="openLightbox({{ asset.id }})">
+              <div class="evolution-step-thumb">
+                {% if asset.image_url or asset.file_path %}
+                <img src="{{ asset.image_url or ('/assets/images/' + asset.file_path) }}"
+                     alt="v{{ asset.version }}">
+                {% else %}
+                <span class="gallery-asset-placeholder" style="font-size: 1.5rem;">&#128100;</span>
+                {% endif %}
+              </div>
+              <span class="text-xs text-muted">v{{ asset.version }}</span>
+            </div>
+            {% for child in evolution_chains[asset.id] | sort(attribute='version') %}
+            <span class="evolution-arrow">&#8594;</span>
+            <div class="evolution-step {% if child.is_current %}current{% endif %}"
+                 onclick="openLightbox({{ child.id }})">
+              <div class="evolution-step-thumb">
+                {% if child.image_url or child.file_path %}
+                <img src="{{ child.image_url or ('/assets/images/' + child.file_path) }}"
+                     alt="v{{ child.version }}">
+                {% else %}
+                <span class="gallery-asset-placeholder" style="font-size: 1.5rem;">&#128100;</span>
+                {% endif %}
+              </div>
+              <span class="text-xs text-muted">v{{ child.version }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+        {# Asset grid #}
+        <div class="grid grid-cols-3 gap-lg">
+          {% for asset in type_assets %}
+          <div class="card gallery-asset-card"
+               id="asset-{{ asset.id }}"
+               onclick="openLightbox({{ asset.id }})"
+               data-src="{{ asset.image_url or ('/assets/images/' + (asset.file_path or '')) }}"
+               data-desc="{{ asset.description or '' }}"
+               data-type="{{ asset.asset_type | replace('_', ' ') | title }}"
+               data-version="{{ asset.version }}"
+               data-entity="{{ asset.entity_type | replace('_', ' ') | title if asset.entity_type else '' }}"
+               data-provider="{{ asset.provider or '' }}"
+               data-model="{{ asset.model_used or '' }}"
+               data-dims="{{ (asset.width | string + 'x' + asset.height | string) if asset.width and asset.height else '' }}"
+               data-date="{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else '' }}"
+               data-chapter="{{ asset.chapter_context or '' }}"
+               data-has-image="{{ 'true' if (asset.image_url or asset.file_path or asset.thumbnail_path) else 'false' }}"
+               data-prompt="{{ asset.prompt_used or '' }}">
+            {# Thumbnail #}
+            <div class="gallery-asset-thumb">
+              {% if asset.image_url or asset.file_path %}
+              <img src="{{ asset.image_url or ('/assets/images/' + asset.file_path) }}"
+                   alt="{{ asset.description or asset.asset_type }}"
+                   loading="lazy">
+              {% elif asset.thumbnail_path %}
+              <img src="{{ '/assets/images/' + asset.thumbnail_path }}"
+                   alt="{{ asset.description or asset.asset_type }}"
+                   loading="lazy">
+              {% else %}
+              <span class="gallery-asset-placeholder">
+                {% if 'portrait' in asset.asset_type %}&#128100;{% elif 'map' in asset.asset_type %}&#127758;{% elif 'sigil' in asset.asset_type %}&#9883;{% elif 'scene' in asset.asset_type %}&#127749;{% else %}&#128444;{% endif %}
+              </span>
+              {% endif %}
+            </div>
+
+            <div class="card-body">
+              {% if asset.description %}
+              <p class="text-sm font-serif mb-sm" style="color: var(--parchment-200);">
+                {{ asset.description[:80] }}{{ '...' if asset.description | length > 80 else '' }}
+              </p>
+              {% endif %}
+
+              <div class="flex justify-between items-center flex-wrap gap-xs">
+                <span class="badge badge-default">v{{ asset.version }}</span>
+                {% if asset.is_current %}
+                <span class="badge badge-success">Current</span>
+                {% endif %}
+                {% if asset.chapter_context %}
+                <span class="text-xs text-muted">Ch. {{ asset.chapter_context }}</span>
+                {% endif %}
+              </div>
+
+              <p class="text-xs text-muted mt-xs">{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else '' }}</p>
+
+              {% if asset.is_current and (asset.image_url or asset.file_path) %}
+              <button class="btn btn-ghost btn-sm mt-sm w-full"
+                      onclick="event.stopPropagation(); showRegenModal({{ asset.id }}, {{ novel_id }}, this.closest('.gallery-asset-card').getAttribute('data-prompt'))"
+                      style="font-size: 0.75rem;">
+                Regenerate
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    {% elif not failed_images %}
+    {# Empty state — only shown when there are no assets AND no failed images #}
+    <div class="card gallery-empty">
+      {% if not image_provider_configured %}
+      <span class="gallery-empty-icon">&#9881;</span>
+      <p class="font-serif text-lg mb-md" style="color: var(--parchment-300);">Image generation is not configured</p>
+      <p class="text-sm text-muted" style="max-width: 30rem; margin: 0 auto;">
+        To generate portraits, maps, sigils, and scene illustrations for your novel,
+        enable image generation and configure a provider (Replicate, HuggingFace Space,
+        or DALL-E) in your environment settings.
+      </p>
+      {% else %}
+      <span class="gallery-empty-icon">&#9876;</span>
+      <p class="font-serif text-lg mb-md" style="color: var(--parchment-300);">No art has been generated yet&hellip;</p>
+      <p class="text-sm text-muted" style="max-width: 28rem; margin: 0 auto;">
+        As your slop takes shape, AI-generated portraits, maps, sigils,
+        and scene illustrations will appear here &mdash; each one a window into
+        the uncanny valley.
+      </p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# Lightbox overlay #}
+<div class="gallery-lightbox" id="gallery-lightbox" onclick="closeLightbox(event)">
+  <div class="lightbox-inner" onclick="event.stopPropagation()">
+    <button class="lightbox-close" onclick="closeLightbox()" title="Close">&times;</button>
+    <img class="lightbox-img" id="lightbox-img" src="" alt="">
+    <div class="lightbox-meta" id="lightbox-meta">
+      <p class="font-serif mb-xs" style="color: var(--parchment-200);" id="lightbox-desc"></p>
+      <p class="text-xs text-muted" id="lightbox-info"></p>
+      <button class="btn btn-ghost btn-sm mt-sm" id="lightbox-regen-btn" style="display: none;"
+              onclick="var d = window._lightboxData; if(d) showRegenModal(d.id, {{ novel_id }}, d.prompt);">
+        Regenerate
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var lightbox = document.getElementById('gallery-lightbox');
+  var lbImg = document.getElementById('lightbox-img');
+  var lbDesc = document.getElementById('lightbox-desc');
+  var lbInfo = document.getElementById('lightbox-info');
+  var lbRegenBtn = document.getElementById('lightbox-regen-btn');
+
+  window.openLightbox = function(assetId) {
+    var card = document.getElementById('asset-' + assetId);
+    if (!card) return;
+
+    var hasImage = card.getAttribute('data-has-image') === 'true';
+    if (!hasImage) return;
+
+    var src = card.getAttribute('data-src');
+    var desc = card.getAttribute('data-desc');
+    var type = card.getAttribute('data-type');
+    var version = card.getAttribute('data-version');
+    var entity = card.getAttribute('data-entity');
+    var provider = card.getAttribute('data-provider');
+    var model = card.getAttribute('data-model');
+    var dims = card.getAttribute('data-dims');
+    var date = card.getAttribute('data-date');
+    var chapter = card.getAttribute('data-chapter');
+    var prompt = card.getAttribute('data-prompt');
+
+    lbImg.src = src;
+    lbImg.alt = desc || type;
+    lbDesc.textContent = desc || '';
+
+    var infoParts = [];
+    if (type) infoParts.push(type);
+    if (version) infoParts.push('v' + version);
+    if (entity) infoParts.push(entity);
+    if (chapter) infoParts.push('Ch. ' + chapter);
+    if (dims) infoParts.push(dims + 'px');
+    if (provider) infoParts.push(provider);
+    if (model) infoParts.push(model);
+    if (date) infoParts.push(date);
+    lbInfo.textContent = infoParts.join(' \u00b7 ');
+
+    window._lightboxData = {id: assetId, prompt: prompt || ''};
+    lbRegenBtn.style.display = hasImage ? 'inline-block' : 'none';
+
+    lightbox.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeLightbox = function(e) {
+    if (e && e.target !== lightbox) return;
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+    lbImg.src = '';
+  };
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && lightbox.classList.contains('open')) {
+      lightbox.classList.remove('open');
+      document.body.style.overflow = '';
+      lbImg.src = '';
+    }
+  });
+})();
+</script>
+{% endblock %}

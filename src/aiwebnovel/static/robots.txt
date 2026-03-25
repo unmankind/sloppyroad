@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /browse
+Allow: /novels/
+
+Disallow: /dashboard
+Disallow: /auth
+Disallow: /api/
+Disallow: /partials/
+Disallow: /novels/new
+
+Sitemap: https://sloppyroad.com/sitemap.xml

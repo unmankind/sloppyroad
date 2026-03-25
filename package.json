@@ -1,0 +1,10 @@
+{
+  "name": "aiwebnovel-frontend",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/aiwebnovel/static/css/input.css -o ./src/aiwebnovel/static/css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4"
+  }
+}

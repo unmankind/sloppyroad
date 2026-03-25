@@ -1,0 +1,37 @@
+sloppyroad.com:443 {
+	tls /certs/origin.crt /certs/origin.key
+
+	# Security headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'"
+	}
+
+	# Static asset caching (version-busted with ?v=N)
+	handle /static/* {
+		header Cache-Control "public, max-age=31536000, immutable"
+	}
+
+	# Compression
+	encode gzip
+
+	reverse_proxy app:8003 {
+		flush_interval -1
+		header_up X-Real-IP {remote_host}
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+	log {
+		output stdout
+		format console
+	}
+}
+
+:80 {
+	redir https://sloppyroad.com{uri} permanent
+}

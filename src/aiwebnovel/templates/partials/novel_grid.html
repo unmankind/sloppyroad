@@ -1,0 +1,10 @@
+{% if novels %}
+  {% for novel in novels %}
+    {% include "components/novel_card.html" %}
+  {% endfor %}
+{% else %}
+<div class="novel-grid-empty">
+  <p class="text-muted font-serif text-lg">No novels found matching your criteria.</p>
+  <p class="text-muted text-sm mt-sm">Try adjusting your filters or browse all novels.</p>
+</div>
+{% endif %}

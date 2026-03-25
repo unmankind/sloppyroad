@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Novels{% endblock %}
+
+{% block content %}
+<div class="container py-xl">
+  {# Hero area #}
+  <div class="browse-hero">
+    <h1 class="browse-hero-title">Browse the Slop</h1>
+    <p class="browse-hero-subtitle">100% AI-generated progression fantasy. No ghostwriters, no human touch, no quality control. Just pure, uncut slop.</p>
+  </div>
+
+  <div class="browse-layout">
+    <!-- Filter Sidebar -->
+    <aside class="filter-sidebar">
+      <button class="filter-toggle" onclick="this.parentElement.classList.toggle('filter-open')">
+        Filters
+        {% set active_filter_count = (selected_genres or []) | length + (1 if selected_status else 0) + (1 if selected_rating else 0) %}
+        {% if active_filter_count > 0 %}
+        <span class="filter-toggle-badge">{{ active_filter_count }}</span>
+        {% endif %}
+      </button>
+      <form class="filter-form" hx-get="/browse"
+            hx-target="#novel-grid"
+            hx-swap="innerHTML"
+            hx-push-url="true">
+
+        <!-- Genre Filter -->
+        <div class="filter-section">
+          <h5 class="filter-section-title">Genre</h5>
+          {% set genre_options = [
+            ("progression_fantasy", "Progression Fantasy"),
+            ("litrpg", "LitRPG"),
+            ("cultivation", "Cultivation"),
+            ("epic_fantasy", "Epic Fantasy"),
+            ("dark_fantasy", "Dark Fantasy"),
+            ("sci_fi", "Sci-Fi"),
+          ] %}
+          {% for slug, label in genre_options %}
+          <label class="filter-option">
+            <input type="checkbox" name="genre" value="{{ slug }}"
+                   {% if slug in (selected_genres or []) %}checked{% endif %}>
+            <span class="filter-check"></span>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+
+        <!-- Status Filter -->
+        <div class="filter-section">
+          <h5 class="filter-section-title">Status</h5>
+          {% for status_label in ['Writing', 'Complete', 'On Hiatus'] %}
+          <label class="filter-option">
+            <input type="radio" name="status" value="{{ status_label | lower | replace(' ', '_') }}"
+                   {% if selected_status == status_label | lower | replace(' ', '_') %}checked{% endif %}>
+            <span class="filter-radio"></span>
+            {{ status_label }}
+          </label>
+          {% endfor %}
+          <label class="filter-option">
+            <input type="radio" name="status" value=""
+                   {% if not selected_status %}checked{% endif %}>
+            <span class="filter-radio"></span>
+            All
+          </label>
+        </div>
+
+        <!-- Rating Filter -->
+        <div class="filter-section">
+          <h5 class="filter-section-title">Minimum Rating</h5>
+          <select name="rating" class="form-select">
+            <option value="">Any rating</option>
+            {% for r in [4, 3, 2, 1] %}
+            <option value="{{ r }}" {% if selected_rating == r %}selected{% endif %}>
+              +{{ r }}+ stars
+            </option>
+            {% endfor %}
+            <option value="-5" {% if selected_rating == -5 %}selected{% endif %}>
+              All (including sloppy)
+            </option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-secondary btn-sm btn-block mt-md">Apply Filters</button>
+      </form>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="browse-main">
+      <!-- Sort & Tabs -->
+      <div class="browse-toolbar">
+        <!-- Leaderboard Tabs -->
+        <div class="tabs m-0" style="border: none; margin: 0;">
+          <a href="/browse" class="tab {% if not leaderboard_tab %}active{% endif %}">All</a>
+          <a href="/browse?tab=most_read" class="tab {% if leaderboard_tab == 'most_read' %}active{% endif %}">Most Read</a>
+          <a href="/browse?tab=highest_rated" class="tab {% if leaderboard_tab == 'highest_rated' %}active{% endif %}">Top Rated</a>
+          <a href="/browse?tab=most_sloppy" class="tab {% if leaderboard_tab == 'most_sloppy' %}active{% endif %}">Most Sloppy</a>
+          <a href="/browse?tab=rising" class="tab {% if leaderboard_tab == 'rising' %}active{% endif %}">Rising</a>
+        </div>
+
+        <!-- Sort Dropdown -->
+        <select class="form-select" style="width: auto;"
+                hx-get="/browse"
+                hx-target="#novel-grid"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+                name="sort">
+          <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest</option>
+          <option value="most_read" {% if sort == 'most_read' %}selected{% endif %}>Most Read</option>
+          <option value="highest_rated" {% if sort == 'highest_rated' %}selected{% endif %}>Highest Rated</option>
+          <option value="most_chapters" {% if sort == 'most_chapters' %}selected{% endif %}>Most Chapters</option>
+          <option value="recently_updated" {% if sort == 'recently_updated' %}selected{% endif %}>Recently Updated</option>
+        </select>
+      </div>
+
+      <!-- Novel Grid -->
+      <div id="novel-grid" class="novel-grid">
+        {% if novels %}
+          {% for novel in novels %}
+            {% include "components/novel_card.html" %}
+          {% endfor %}
+        {% else %}
+        <div class="novel-grid-empty">
+          <p class="text-muted font-serif text-lg">No slop matches your discerning taste.</p>
+          <p class="text-muted text-sm mt-sm">Try loosening your filters. We promise the bar is already low.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Pagination -->
+      {% if total_pages and total_pages > 1 %}
+      <nav class="pagination">
+        {% if current_page > 1 %}
+        <a href="/browse?page={{ current_page - 1 }}">&larr;</a>
+        {% else %}
+        <span class="disabled">&larr;</span>
+        {% endif %}
+
+        {% for p in range(1, total_pages + 1) %}
+          {% if p == current_page %}
+          <span class="active">{{ p }}</span>
+          {% elif p <= 3 or p > total_pages - 2 or (p >= current_page - 1 and p <= current_page + 1) %}
+          <a href="/browse?page={{ p }}">{{ p }}</a>
+          {% elif p == 4 and current_page > 5 %}
+          <span class="text-muted">&hellip;</span>
+          {% elif p == total_pages - 2 and current_page < total_pages - 4 %}
+          <span class="text-muted">&hellip;</span>
+          {% endif %}
+        {% endfor %}
+
+        {% if current_page < total_pages %}
+        <a href="/browse?page={{ current_page + 1 }}">&rarr;</a>
+        {% else %}
+        <span class="disabled">&rarr;</span>
+        {% endif %}
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

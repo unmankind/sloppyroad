@@ -1,0 +1,180 @@
+{% extends "reader_base.html" %}
+
+{% block title %}Chapter {{ chapter.chapter_number }} - {{ novel.title }}{% endblock %}
+
+{% block reader_content %}
+<article class="reading-container py-2xl animate-fade-in">
+  <!-- Chapter Header -->
+  <header class="text-center mb-2xl">
+    <p class="text-muted text-sm mb-sm font-sans">
+      <a href="/novels/{{ novel.id }}" style="color: var(--parchment-400);">{{ novel.title }}</a>
+    </p>
+    <h1 style="font-size: 1.75rem; margin-bottom: var(--space-sm);">
+      Chapter {{ chapter.chapter_number }}
+    </h1>
+    {% if chapter_title and chapter_title.lower().strip() != ("chapter " ~ chapter.chapter_number|string).lower() %}
+    <p class="font-display text-lg" style="color: var(--parchment-300);">{{ chapter_title }}</p>
+    {% endif %}
+    {% if chapter.word_count %}
+    <p class="text-xs text-muted mt-sm font-sans" style="letter-spacing: 0.05em;">{{ chapter.word_count | reading_time }}</p>
+    {% endif %}
+    <div style="width: 4rem; height: 1px; background: linear-gradient(90deg, transparent, var(--ink-500), transparent); margin: var(--space-lg) auto;"></div>
+  </header>
+
+  <!-- Chapter Content -->
+  <div class="prose">
+    {{ chapter_html }}
+  </div>
+
+  <!-- Chapter Images -->
+  {% if chapter_images %}
+  <div class="chapter-images mt-xl">
+    {% for img in chapter_images %}
+      {% if img.status == 'complete' and img.art_asset %}
+      <figure class="chapter-image mb-lg" style="text-align: center;">
+        <img src="{{ img.art_asset.image_url or ('/assets/images/' + (img.art_asset.file_path or '')) }}"
+             alt="{{ img.scene_description[:100] }}"
+             style="max-width: 100%; border-radius: var(--radius-lg); box-shadow: 0 0 24px rgba(107, 69, 184, 0.1);">
+        <figcaption class="text-xs text-muted mt-sm font-serif" style="font-style: italic;">
+          {{ img.scene_description[:120] }}
+        </figcaption>
+        {% if is_author %}
+        <button class="btn btn-ghost btn-sm mt-sm regen-btn"
+                data-asset-id="{{ img.art_asset.id }}"
+                data-novel-id="{{ novel.id }}"
+                data-prompt="{{ img.art_asset.prompt_used or '' }}"
+                style="font-size: 0.75rem;">
+          Regenerate
+        </button>
+        {% endif %}
+      </figure>
+      {% elif img.status == 'failed' %}
+      <div class="chapter-image-failed mb-lg" id="chapter-img-{{ img.id }}"
+           style="text-align: center; padding: var(--space-lg); background: var(--ink-900); border: 1px dashed var(--ember-600); border-radius: var(--radius-lg);">
+        <span style="font-size: 2rem; display: block; margin-bottom: var(--space-sm); opacity: 0.5;">&#128247;</span>
+        <p class="text-sm" style="color: var(--ember-400);">Image failed to generate</p>
+        {% if img.error_message %}
+        <p class="text-xs mt-xs" style="color: var(--ember-500); word-break: break-word;">
+          {{ img.error_message[:120] }}{{ '...' if img.error_message | length > 120 else '' }}
+        </p>
+        {% endif %}
+        <p class="text-xs text-muted mt-xs font-serif" style="font-style: italic;">
+          {{ img.scene_description[:120] }}
+        </p>
+        <button class="btn btn-secondary btn-sm mt-sm"
+                hx-post="/api/novels/{{ novel.id }}/images/{{ img.id }}/retry"
+                hx-target="#chapter-img-{{ img.id }}"
+                hx-swap="outerHTML">
+          Retry
+        </button>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Chapter Aftermath -->
+  {% if aftermath %}
+  <div class="aftermath-card">
+    <h3>What Happened</h3>
+    {% if aftermath.events %}
+    <ul class="aftermath-events">
+      {% for event in aftermath.events %}
+      <li>{{ event }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if aftermath.tease %}
+    <p class="aftermath-tease">{{ aftermath.tease }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Oracle Widget -->
+  {% if oracle_active %}
+  <div class="oracle-widget mt-2xl">
+    <h4 class="mb-md">The Oracle Pretends to Listen</h4>
+    <p class="text-sm mb-md" style="color: var(--arcane-300);">
+      {{ oracle_prompt or 'Ask a question about the world. The AI will confidently answer with something it just made up.' }}
+    </p>
+    <form hx-post="/novels/{{ novel.id }}/oracle"
+          hx-swap="outerHTML"
+          hx-target="closest .oracle-widget">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="flex gap-sm">
+        <input type="text"
+               name="question"
+               class="form-input oracle-input flex-1"
+               placeholder="What do you wish to know?"
+               maxlength="200"
+               required>
+        <button type="submit" class="btn btn-arcane">Ask</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- Butterfly Choice Widget -->
+  {% if butterfly_choice %}
+  <div class="butterfly-widget mt-2xl">
+    <div class="butterfly-option"
+         hx-post="/novels/{{ novel.id }}/butterfly/{{ butterfly_choice.id }}/vote"
+         hx-vals='{"option": "a"}'
+         hx-swap="outerHTML"
+         hx-target="closest .butterfly-widget">
+      <h4 class="font-display mb-sm" style="color: var(--parchment-100);">{{ butterfly_choice.option_a }}</h4>
+      <p class="text-sm text-muted">{{ butterfly_choice.description_a or '' }}</p>
+    </div>
+
+    <div class="butterfly-divider">or</div>
+
+    <div class="butterfly-option"
+         hx-post="/novels/{{ novel.id }}/butterfly/{{ butterfly_choice.id }}/vote"
+         hx-vals='{"option": "b"}'
+         hx-swap="outerHTML"
+         hx-target="closest .butterfly-widget">
+      <h4 class="font-display mb-sm" style="color: var(--parchment-100);">{{ butterfly_choice.option_b }}</h4>
+      <p class="text-sm text-muted">{{ butterfly_choice.description_b or '' }}</p>
+    </div>
+  </div>
+  {% if butterfly_choice.tally %}
+  <div class="butterfly-tally">
+    <span>{{ butterfly_choice.tally.a }} chose the first path</span>
+    <span>{{ butterfly_choice.tally.b }} chose the second</span>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <!-- Chapter Navigation -->
+  <nav class="chapter-nav">
+    {% if prev_chapter %}
+    <a href="/novels/{{ novel.id }}/chapters/{{ prev_chapter.chapter_number }}" hx-boost="true">
+      &larr; Previous Chapter
+    </a>
+    {% else %}
+    <span></span>
+    {% endif %}
+
+    <span class="chapter-count">
+      {{ chapter.chapter_number }} / {{ total_chapters }}
+    </span>
+
+    {% if next_chapter %}
+    <a href="/novels/{{ novel.id }}/chapters/{{ next_chapter.chapter_number }}" hx-boost="true">
+      Next Chapter &rarr;
+    </a>
+    {% else %}
+      {% if is_complete %}
+      <a href="/novels/{{ novel.id }}/the-end" class="btn btn-arcane btn-sm">The End</a>
+      {% elif is_author and not active_gen_job %}
+      <form method="post" action="/novels/{{ novel.id }}/generate" style="display: inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-primary btn-sm">Generate Next Chapter</button>
+      </form>
+      {% else %}
+      <span class="text-muted text-sm font-serif" style="font-style: italic;">More slop incoming...</span>
+      {% endif %}
+    {% endif %}
+  </nav>
+</article>
+{% endblock %}

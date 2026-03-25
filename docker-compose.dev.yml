@@ -1,0 +1,88 @@
+# Development stack — standalone (no PostgreSQL, uses SQLite)
+# Usage: docker compose -f docker-compose.dev.yml up --build
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aiwn-app
+    command: ["/app/.venv/bin/python", "-m", "uvicorn", "aiwebnovel.main:create_app",
+              "--factory", "--host", "0.0.0.0", "--port", "8003",
+              "--reload", "--reload-dir", "/app/src"]
+    environment:
+      - AIWN_DATABASE_URL=sqlite+aiosqlite:///./data/aiwebnovel.db
+      - AIWN_REDIS_URL=redis://redis:6379
+      - AIWN_JWT_SECRET_KEY=${AIWN_JWT_SECRET_KEY:-dev-secret-change-me}
+      - AIWN_LITELLM_API_KEY=${AIWN_LITELLM_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AIWN_IMAGE_ENABLED=true
+      - AIWN_IMAGE_PROVIDER=replicate
+      - AIWN_REPLICATE_API_TOKEN=${AIWN_REPLICATE_API_TOKEN:-}
+      - AIWN_IMAGE_ASSET_PATH=./data/images
+      - AIWN_VECTOR_DB_PATH=./data/vector_store
+      - AIWN_DEBUG=true
+      - AIWN_LOG_LEVEL=DEBUG
+      # SQLite uses create_all, not Alembic migrations
+      # - AIWN_RUN_MIGRATIONS=1
+    volumes:
+      - ./src:/app/src:rw
+      - ./alembic:/app/alembic:rw
+      - ./data:/app/data:rw
+    ports:
+      - "8003:8003"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aiwn-worker
+    command: ["/app/.venv/bin/python", "-m", "arq", "aiwebnovel.worker.queue.WorkerSettings"]
+    environment:
+      - AIWN_DATABASE_URL=sqlite+aiosqlite:///./data/aiwebnovel.db
+      - AIWN_REDIS_URL=redis://redis:6379
+      - AIWN_JWT_SECRET_KEY=${AIWN_JWT_SECRET_KEY:-dev-secret-change-me}
+      - AIWN_LITELLM_API_KEY=${AIWN_LITELLM_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AIWN_IMAGE_ENABLED=true
+      - AIWN_IMAGE_PROVIDER=replicate
+      - AIWN_REPLICATE_API_TOKEN=${AIWN_REPLICATE_API_TOKEN:-}
+      - AIWN_IMAGE_ASSET_PATH=./data/images
+      - AIWN_DEBUG=true
+    volumes:
+      - ./src:/app/src:rw
+      - ./data:/app/data:rw
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; import redis; r=redis.from_url('redis://redis:6379'); sys.exit(0 if r.exists('arq:health-check') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: aiwn-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-data:

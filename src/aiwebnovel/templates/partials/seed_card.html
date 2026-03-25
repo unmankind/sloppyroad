@@ -1,0 +1,44 @@
+{# Single seed card — used as both inline include and HTMX swap target.
+   Requires `seed` (NovelSeed) in context. Uses seed.novel_id for URLs. #}
+{%- set _cat = {
+    'protagonist_archetype': {'label': 'Protagonist', 'icon': '&#9876;'},
+    'antagonist_role': {'label': 'Antagonist', 'icon': '&#128128;'},
+    'world_premise': {'label': 'World Premise', 'icon': '&#127758;'},
+    'conflict_driver': {'label': 'Conflict Driver', 'icon': '&#9889;'},
+    'magic_limitation': {'label': 'Magic Limitation', 'icon': '&#128274;'},
+    'theme_focus': {'label': 'Theme', 'icon': '&#128214;'},
+    'pacing_constraint': {'label': 'Pacing', 'icon': '&#9202;'},
+} -%}
+{%- set cat_info = _cat.get(seed.seed_category, {'label': seed.seed_category | replace('_', ' ') | title, 'icon': '&#10022;'}) -%}
+<div class="seed-card card" id="seed-{{ seed.id }}" data-seed-id="{{ seed.id }}">
+  <div class="card-header">
+    <span class="badge badge-arcane">{{ cat_info.icon | safe }} {{ cat_info.label }}</span>
+    <div class="seed-actions flex gap-xs items-center">
+      <button class="btn btn-ghost btn-sm seed-lock-btn"
+              title="Lock (protect during Reroll All)"
+              onclick="toggleLock(this, {{ seed.id }})">
+        &#128275;
+      </button>
+      <button class="btn btn-secondary btn-sm"
+              title="Reroll this seed"
+              hx-post="/novels/{{ seed.novel_id }}/world/seeds/reroll/{{ seed.id }}"
+              hx-target="#seed-{{ seed.id }}"
+              hx-swap="outerHTML swap:150ms">
+        &#127922; Reroll
+      </button>
+      <button class="btn btn-ghost btn-sm"
+              title="Remove this seed"
+              style="color: var(--ink-400);"
+              hx-delete="/novels/{{ seed.novel_id }}/world/seeds/{{ seed.id }}"
+              hx-target="#seed-{{ seed.id }}"
+              hx-swap="outerHTML swap:200ms"
+              hx-confirm="Remove this seed? It won't influence world generation.">
+        &#10005;
+      </button>
+    </div>
+  </div>
+  <div class="card-body">
+    <h4 class="seed-title">{{ seed.seed_id.split('_', 1)[-1].replace('_', ' ') | title }}</h4>
+    <p class="seed-text font-serif">{{ seed.seed_text }}</p>
+  </div>
+</div>

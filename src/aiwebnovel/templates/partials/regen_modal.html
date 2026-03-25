@@ -1,0 +1,168 @@
+{# Image Regeneration Modal — included in base.html, shown via JS #}
+<div id="regen-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="regen-modal-title"
+     style="position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.88);
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);"
+     onclick="hideRegenModal(event)">
+  <div onclick="event.stopPropagation()"
+       style="position: relative; max-width: 32rem; width: 100%; display: flex;
+              flex-direction: column; align-items: center; gap: var(--space-md);">
+    <button onclick="hideRegenModal()" aria-label="Close dialog"
+            style="position: absolute; top: -2.5rem; right: -1rem; font-size: 1.5rem;
+                   color: var(--parchment-400); background: none; border: none;
+                   cursor: pointer; padding: var(--space-xs);">&times;</button>
+
+    <div class="card" style="width: 100%; background: var(--ink-900); border-color: var(--arcane-700);">
+      <div class="card-header">
+        <h3 class="card-title" id="regen-modal-title" style="color: var(--arcane-300);">Regenerate Image</h3>
+      </div>
+      <div class="card-body">
+        <div class="mb-lg">
+          <label class="text-sm text-muted mb-xs" style="display: block;">Original Prompt</label>
+          <div id="regen-original-prompt"
+               class="text-sm font-serif"
+               style="background: var(--ink-800); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); color: var(--parchment-400); max-height: 6rem; overflow-y: auto; line-height: 1.5;">
+          </div>
+        </div>
+
+        <form id="regen-form" onsubmit="submitRegenForm(event)">
+          <div class="mb-lg">
+            <label for="regen-feedback" class="text-sm text-muted mb-xs" style="display: block;">
+              What would you like changed?
+            </label>
+            <textarea id="regen-feedback"
+                      name="feedback"
+                      class="form-input w-full"
+                      rows="3"
+                      maxlength="500"
+                      placeholder="e.g. Make the hair darker, add a scar on the left cheek, more dramatic lighting..."
+                      required
+                      style="resize: vertical; min-height: 4rem;"></textarea>
+            <div class="text-xs text-muted mt-xs" style="text-align: right;">
+              <span id="regen-char-count">0</span>/500
+            </div>
+          </div>
+
+          <input type="hidden" id="regen-asset-id" name="asset_id" value="">
+          <input type="hidden" id="regen-novel-id" name="novel_id" value="">
+
+          <div class="flex justify-end gap-sm">
+            <button type="button" class="btn btn-ghost" onclick="hideRegenModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="regen-submit-btn">Regenerate</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="regen-toast" style="display: none; position: fixed; bottom: 2rem; right: 2rem; z-index: 1200;
+     background: var(--ink-800); border: 1px solid var(--arcane-700); border-radius: var(--radius-lg);
+     padding: var(--space-sm) var(--space-lg); color: var(--arcane-300); font-size: 0.85rem;
+     box-shadow: 0 4px 24px rgba(0,0,0,0.4); transition: opacity 0.3s ease;">
+</div>
+
+<script>
+(function() {
+  var modal = document.getElementById('regen-modal');
+  var promptBox = document.getElementById('regen-original-prompt');
+  var feedbackInput = document.getElementById('regen-feedback');
+  var charCount = document.getElementById('regen-char-count');
+  var assetIdInput = document.getElementById('regen-asset-id');
+  var novelIdInput = document.getElementById('regen-novel-id');
+  var submitBtn = document.getElementById('regen-submit-btn');
+  var toast = document.getElementById('regen-toast');
+
+  feedbackInput.addEventListener('input', function() {
+    charCount.textContent = feedbackInput.value.length;
+  });
+
+  window.showRegenModal = function(assetId, novelId, originalPrompt) {
+    assetIdInput.value = assetId;
+    novelIdInput.value = novelId;
+    promptBox.textContent = originalPrompt || '(no prompt recorded)';
+    feedbackInput.value = '';
+    charCount.textContent = '0';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Regenerate';
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    feedbackInput.focus();
+  };
+
+  window.hideRegenModal = function(e) {
+    if (e && e.target !== modal) return;
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  };
+
+  window.submitRegenForm = function(e) {
+    e.preventDefault();
+    var assetId = assetIdInput.value;
+    var novelId = novelIdInput.value;
+    var feedback = feedbackInput.value.trim();
+    if (!feedback) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Queuing...';
+
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    var headers = {'Content-Type': 'application/x-www-form-urlencoded'};
+    if (csrfMeta) headers['X-CSRF-Token'] = csrfMeta.content;
+
+    var body = 'feedback=' + encodeURIComponent(feedback);
+    if (csrfMeta) body += '&csrf_token=' + encodeURIComponent(csrfMeta.content);
+
+    fetch('/api/novels/' + novelId + '/gallery/' + assetId + '/regenerate', {
+      method: 'POST',
+      headers: headers,
+      body: body,
+    })
+    .then(function(resp) {
+      if (!resp.ok) throw new Error('Request failed: ' + resp.status);
+      return resp.json();
+    })
+    .then(function(data) {
+      hideRegenModal();
+      showRegenToast('Image queued for regeneration');
+    })
+    .catch(function(err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Regenerate';
+      showRegenToast('Failed: ' + err.message);
+    });
+  };
+
+  function showRegenToast(msg) {
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    toast.style.opacity = '1';
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      setTimeout(function() { toast.style.display = 'none'; }, 300);
+    }, 3000);
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.style.display === 'flex') {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  });
+
+  // Delegated handler for .regen-btn buttons (data-attribute based, XSS-safe)
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.regen-btn');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var assetId = btn.getAttribute('data-asset-id');
+    var novelId = btn.getAttribute('data-novel-id');
+    var prompt = btn.getAttribute('data-prompt') || '';
+    if (assetId && novelId) showRegenModal(assetId, novelId, prompt);
+  });
+})();
+</script>

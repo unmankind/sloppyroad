@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}Generating World - {{ novel.title }}{% endblock %}
+
+{% block head_extra %}
+<style>
+  .forge-container {
+    max-width: 44rem;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  /* 8-stage pipeline visualizer */
+  .pipeline-stages {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin: var(--space-xl) 0;
+    text-align: left;
+  }
+  .pipeline-stage {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    transition: all 0.5s ease;
+  }
+  .pipeline-stage.waiting {
+    opacity: 0.35;
+  }
+  .pipeline-stage.active {
+    opacity: 1;
+    border-color: var(--arcane-700);
+    background: rgba(139, 92, 246, 0.05);
+  }
+  .pipeline-stage.complete {
+    opacity: 0.7;
+  }
+  .stage-icon {
+    font-size: 1.4rem;
+    width: 2rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .stage-info {
+    flex: 1;
+  }
+  .stage-name {
+    font-size: 0.9rem;
+    color: var(--parchment-200);
+  }
+  .pipeline-stage.active .stage-name {
+    color: var(--arcane-300);
+  }
+  .pipeline-stage.complete .stage-name {
+    color: var(--parchment-400);
+    text-decoration: line-through;
+    text-decoration-color: var(--ink-500);
+  }
+  .stage-check {
+    color: var(--arcane-400);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .pipeline-stage.complete .stage-check {
+    opacity: 1;
+  }
+
+  /* Lore rotation */
+  .lore-card {
+    min-height: 8rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-color: var(--ink-600);
+    transition: opacity 0.6s ease;
+  }
+  .lore-card.fading { opacity: 0; }
+
+  /* Spinner */
+  @keyframes forge-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 1; }
+  }
+  .forge-icon {
+    font-size: 4rem;
+    animation: forge-pulse 2.5s ease-in-out infinite;
+    display: inline-block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-xl animate-fade-in">
+  <div class="forge-container">
+
+    <!-- Pre-forge state (before clicking) -->
+    <div id="pre-forge" {% if job_id %}class="hidden"{% endif %}>
+      <div style="font-size: 5rem; margin-bottom: var(--space-lg);">&#9876;</div>
+      <h1 class="font-display mb-md" style="color: var(--parchment-100); font-size: 2.2rem;">
+        Generate the World of<br>
+        <span style="color: var(--arcane-300);">{{ novel.title }}</span>
+      </h1>
+      <p class="font-serif text-lg mb-lg" style="color: var(--parchment-300); max-width: 30rem; margin: 0 auto var(--space-lg);">
+        The 8-stage pipeline will hallucinate a complete, mostly-consistent
+        reality from raw vibes to a cast of characters with suspiciously detailed backstories.
+      </p>
+
+      <div class="card mb-xl" style="text-align: left; border-color: var(--ink-600);">
+        <div class="card-body">
+          <p class="text-sm mb-md" style="color: var(--parchment-400);">This process will hallucinate:</p>
+          <div class="grid grid-cols-2 gap-sm" style="font-size: 0.85rem;">
+            <div style="color: var(--parchment-300);">&#10022; Cosmology &amp; creation myth</div>
+            <div style="color: var(--parchment-300);">&#10022; Power system &amp; ranks</div>
+            <div style="color: var(--parchment-300);">&#10022; Geography &amp; regions</div>
+            <div style="color: var(--parchment-300);">&#10022; History &amp; major events</div>
+            <div style="color: var(--parchment-300);">&#10022; Current political state</div>
+            <div style="color: var(--parchment-300);">&#10022; Protagonist &amp; backstory</div>
+            <div style="color: var(--parchment-300);">&#10022; Antagonists &amp; factions</div>
+            <div style="color: var(--parchment-300);">&#10022; Supporting cast</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-lg" style="border-color: var(--ember-800); background: rgba(239, 68, 68, 0.03);">
+        <div class="card-body">
+          <p class="text-sm" style="color: var(--ember-400);">
+            &#9888; This takes <strong>3&ndash;8 minutes</strong> depending on the LLM provider.
+            Each stage involves multiple AI calls to generate the illusion of depth and consistency.
+            Don't close this tab &mdash; the AI gets lonely.
+          </p>
+        </div>
+      </div>
+
+      <form method="post" action="/novels/{{ novel.id }}/world/generate">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-primary"
+                style="font-size: 1.5rem; padding: 1.25rem 4rem; letter-spacing: 0.08em;">
+          &#9876; Start the Hallucination
+        </button>
+      </form>
+    </div>
+
+    <!-- Active forge state (after clicking / if job_id) -->
+    <div id="forging" {% if not job_id %}class="hidden"{% endif %}>
+      <div class="forge-icon" id="forge-icon">&#9876;</div>
+      <h2 class="font-display mt-lg mb-sm" style="color: var(--parchment-100);" id="forge-heading">
+        Hallucinating Your World...
+      </h2>
+      <p class="text-muted text-sm mb-xl" id="forge-elapsed"></p>
+
+      <!-- 8-Stage Pipeline -->
+      <div class="pipeline-stages" id="pipeline">
+        <div class="pipeline-stage waiting" data-stage="cosmology">
+          <span class="stage-icon">&#10022;</span>
+          <span class="stage-info"><span class="stage-name">Cosmology &amp; Creation Myth</span></span>
+          <span class="stage-check">&#10003;</span>
+        </div>
+        <div class="pipeline-stage waiting" data-stage="power_system">
+          <span class="stage-icon">&#9889;</span>
+          <span class="stage-info"><span class="stage-name">Power System &amp; Ranks</span></span>
+          <span class="stage-check">&#10003;</span>
+        </div>
+        <div class="pipeline-stage waiting" data-stage="geography">
+          <span class="stage-icon">&#9968;</span>
+          <span class="stage-info"><span class="stage-name">Geography &amp; Regions</span></span>
+          <span class="stage-check">&#10003;</span>
+        </div>
+        <div class="pipeline-stage waiting" data-stage="history">
+          <span class="stage-icon">&#128220;</span>
+          <span class="stage-info"><span class="stage-name">History &amp; Major Events</span></span>
+          <span class="stage-check">&#10003;</span>
+        </div>
+        <div class="pipeline-stage waiting" data-stage="current_state">
+          <span class="stage-icon">&#127984;</span>
+          <span class="stage-info"><span class="stage-name">Current State of Affairs</span></span>
+          <span class="stage-check">&#10003;</span>
+        </div>
+        <div class="pipeline-stage waiting" data-stage="protagonist">
+          <span class="stage-icon">&#9876;</span>
+          <span class="stage-info"><span class="stage-name">Protagonist &amp; Backstory</span></span>
+          <span class="stage-check">&#10003;</span>
+        </div>
+        <div class="pipeline-stage waiting" data-stage="antagonists">
+          <span class="stage-icon">&#128128;</span>
+          <span class="stage-info"><span class="stage-name">Antagonists &amp; Factions</span></span>
+          <span class="stage-check">&#10003;</span>
+        </div>
+        <div class="pipeline-stage waiting" data-stage="supporting_cast">
+          <span class="stage-icon">&#128101;</span>
+          <span class="stage-info"><span class="stage-name">Supporting Cast</span></span>
+          <span class="stage-check">&#10003;</span>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="stream-progress mt-lg">
+        <div class="progress-bar">
+          <div class="progress-bar-fill" id="forge-progress" style="width: 0%;"></div>
+        </div>
+        <p class="text-xs text-muted mt-sm" id="forge-progress-text">Preparing...</p>
+      </div>
+
+      <!-- Rotating lore cards to keep users engaged -->
+      <div class="card lore-card mt-xl" id="lore-card">
+        <div class="card-body">
+          <p class="font-serif" style="color: var(--parchment-300); font-style: italic;" id="lore-text">
+            "In the beginning, there was only the GPU and the Prompt..."
+          </p>
+          <p class="text-xs mt-sm" style="color: var(--ink-400);" id="lore-source">
+            &mdash; While your world takes shape
+          </p>
+        </div>
+      </div>
+
+      <!-- Completion -->
+      <div id="forge-complete" class="hidden mt-xl">
+        <h2 class="font-display mb-md" style="color: var(--arcane-300); font-size: 1.8rem;">
+          The World Has Been Hallucinated
+        </h2>
+        <p class="font-serif text-lg mb-xl" style="color: var(--parchment-300);" id="forge-summary"></p>
+        <div class="flex gap-md" style="justify-content: center;">
+          <a href="/novels/{{ novel.id }}" class="btn btn-primary btn-lg">Explore Your World</a>
+          <form method="post" action="/novels/{{ novel.id }}/generate" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-secondary btn-lg">Slop Out First Chapter</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var jobId = '{{ job_id or "" }}';
+  if (!jobId) return;
+
+  var stages = ['cosmology', 'power_system', 'geography', 'history',
+                'current_state', 'protagonist', 'antagonists', 'supporting_cast'];
+  var currentStage = 0;
+  var startTime = Date.now();
+
+  var progressBar = document.getElementById('forge-progress');
+  var progressText = document.getElementById('forge-progress-text');
+  var elapsedEl = document.getElementById('forge-elapsed');
+  var forgeIcon = document.getElementById('forge-icon');
+  var forgeHeading = document.getElementById('forge-heading');
+  var forgeComplete = document.getElementById('forge-complete');
+  var forgeSummary = document.getElementById('forge-summary');
+  var loreCard = document.getElementById('lore-card');
+  var loreText = document.getElementById('lore-text');
+  var loreSource = document.getElementById('lore-source');
+
+  // Rotating lore snippets
+  var lore = [
+    {text: "Every AI world begins with the same question: how many syllables should the magic system have?", source: "On AI world-building"},
+    {text: "The geography will be internally consistent right up until chapter 7, when the AI forgets which direction the river flows.", source: "On generated geography"},
+    {text: "A magic system without cost is a story without tension. The AI doesn't understand either concept.", source: "On AI power systems"},
+    {text: "The AI will generate 10,000 years of history and contradict all of it by chapter 3.", source: "On AI history"},
+    {text: "The best AI antagonists believe they are the hero of their own story. The AI believes this about all its characters.", source: "On generated antagonists"},
+    {text: "An AI protagonist is defined by their tragic backstory, mysterious power, and the author's complete lack of involvement.", source: "On AI protagonists"},
+    {text: "Supporting characters exist primarily so the protagonist has someone to explain things to.", source: "On generated NPCs"},
+    {text: "The AI will create 14 factions and give them all vaguely threatening Latin-sounding names.", source: "On AI factions"},
+    {text: "Every AI creation myth involves primordial forces splitting into opposing aspects. Every. Single. One.", source: "On AI cosmology"},
+    {text: "Power progression follows a strict hierarchy: Named Vaguely, Named Impressively, Named With Too Many Adjectives.", source: "On AI power tiers"},
+    {text: "The current state of the world is always 'on the brink of war.' The AI has never generated a world that was doing fine.", source: "On AI world states"},
+    {text: "The Void does not hunger. It simply... waits. (The AI really likes voids.)", source: "Fragment recovered during generation"}
+  ];
+  var loreIndex = 0;
+
+  // Rotate lore every 12 seconds
+  setInterval(function() {
+    loreIndex = (loreIndex + 1) % lore.length;
+    loreCard.classList.add('fading');
+    setTimeout(function() {
+      loreText.textContent = '"' + lore[loreIndex].text + '"';
+      loreSource.textContent = '— ' + lore[loreIndex].source;
+      loreCard.classList.remove('fading');
+    }, 600);
+  }, 12000);
+
+  // Elapsed timer
+  setInterval(function() {
+    var secs = Math.floor((Date.now() - startTime) / 1000);
+    var mins = Math.floor(secs / 60);
+    secs = secs % 60;
+    elapsedEl.textContent = (mins > 0 ? mins + 'm ' : '') + secs + 's elapsed';
+  }, 1000);
+
+  function setStage(stageName) {
+    var idx = stages.indexOf(stageName);
+    if (idx < 0) return;
+
+    var allEls = document.querySelectorAll('.pipeline-stage');
+    allEls.forEach(function(el, i) {
+      el.classList.remove('active', 'complete', 'waiting');
+      if (i < idx) el.classList.add('complete');
+      else if (i === idx) el.classList.add('active');
+      else el.classList.add('waiting');
+    });
+
+    var pct = Math.round(((idx + 0.5) / stages.length) * 100);
+    progressBar.style.width = pct + '%';
+    progressText.textContent = 'Stage ' + (idx + 1) + ' of ' + stages.length;
+    currentStage = idx;
+  }
+
+  // SSE connection
+  var source = new EventSource('/api/stream/' + jobId);
+
+  source.addEventListener('status', function(e) {
+    var data = JSON.parse(e.data);
+    if (data.stage) setStage(data.stage);
+    if (data.status === 'complete') {
+      // Mark all complete
+      document.querySelectorAll('.pipeline-stage').forEach(function(el) {
+        el.classList.remove('active', 'waiting');
+        el.classList.add('complete');
+      });
+    }
+  });
+
+  source.addEventListener('progress', function(e) {
+    var data = JSON.parse(e.data);
+    if (data.progress) {
+      progressBar.style.width = data.progress + '%';
+    }
+  });
+
+  source.addEventListener('complete', function(e) {
+    source.close();
+    var data = JSON.parse(e.data);
+
+    // Finish pipeline display
+    document.querySelectorAll('.pipeline-stage').forEach(function(el) {
+      el.classList.remove('active', 'waiting');
+      el.classList.add('complete');
+    });
+    progressBar.style.width = '100%';
+    progressText.textContent = 'Complete';
+
+    // Swap to completion UI
+    forgeIcon.style.animation = 'none';
+    forgeIcon.textContent = '\u2728';
+    forgeHeading.textContent = 'The Hallucination is Complete';
+    loreCard.classList.add('hidden');
+    forgeSummary.textContent = data.message || 'Your world has been hallucinated. Explore it, then slop out your first chapter.';
+    forgeComplete.classList.remove('hidden');
+
+    // If title was auto-generated, update heading
+    if (data.title) {
+      document.title = data.title + ' - World Generated';
+    }
+  });
+
+  source.addEventListener('error', function(e) {
+    if (e.data) {
+      var data = JSON.parse(e.data);
+      progressText.textContent = 'Error: ' + (data.message || 'Generation failed');
+    }
+    source.close();
+    forgeIcon.style.animation = 'none';
+    forgeIcon.textContent = '\u26A0';
+    forgeHeading.textContent = 'The Hallucination Engine Crashed';
+  });
+
+  source.onerror = function() {
+    if (source.readyState === EventSource.CLOSED) {
+      forgeHeading.textContent = 'Connection lost.';
+    }
+  };
+})();
+</script>
+{% endblock %}

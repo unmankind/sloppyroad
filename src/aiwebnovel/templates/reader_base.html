@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{# Reader base — immersive, minimal chrome, candlelit library aesthetic #}
+
+{% block head_extra %}
+<style>
+  /* Reader-specific overrides */
+  body { font-family: var(--font-serif); }
+</style>
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<!-- Reading progress bar -->
+<div class="reading-progress-bar" id="reading-progress-bar"></div>
+
+<div class="reader-mode">
+  <div class="page-content animate-fade-in">
+    {% block reader_content %}{% endblock %}
+  </div>
+
+  {# Bookmark tracking — invisible element that reports reading position #}
+  <div id="reader-tracker"
+       data-novel-id="{{ novel.id if novel else '' }}"
+       data-chapter-num="{{ chapter.chapter_number if chapter else '' }}"
+       style="display:none;">
+  </div>
+</div>
+
+{# Floating next chapter pill — only when there IS a next chapter #}
+{% if next_chapter %}
+<a href="/novels/{{ novel.id }}/chapters/{{ next_chapter.chapter_number }}"
+   class="floating-next-pill" id="floating-next-pill" hx-boost="true">
+  <span class="floating-next-mini">Ch {{ next_chapter.chapter_number }} &rarr;</span>
+  <span class="floating-next-full">Next: Chapter {{ next_chapter.chapter_number }}{% if next_chapter.title %} &mdash; {{ next_chapter.title[:40] }}{% if next_chapter.title | length > 40 %}...{% endif %}{% endif %} &rarr;</span>
+</a>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Reader signal: time-on-page tracking + progress bar + floating nav
+  (function() {
+    var tracker = document.getElementById('reader-tracker');
+    if (!tracker) return;
+
+    var novelId = tracker.dataset.novelId;
+    var chapterNum = tracker.dataset.chapterNum;
+    if (!novelId || !chapterNum) return;
+
+    var startTime = Date.now();
+    var maxScroll = 0;
+    var progressBar = document.getElementById('reading-progress-bar');
+    var pill = document.getElementById('floating-next-pill');
+
+    window.addEventListener('scroll', function() {
+      var scrollable = document.body.scrollHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      var scrollPercent = window.scrollY / scrollable;
+      if (scrollPercent > maxScroll) maxScroll = scrollPercent;
+
+      // Update progress bar
+      if (progressBar) {
+        progressBar.style.width = Math.min(scrollPercent * 100, 100) + '%';
+      }
+
+      // Expand/collapse floating pill at 85%
+      if (pill) {
+        if (scrollPercent > 0.85) {
+          pill.classList.add('expanded');
+        } else {
+          pill.classList.remove('expanded');
+        }
+        // Show pill after scrolling past 10%
+        if (scrollPercent > 0.1) {
+          pill.classList.add('visible');
+        } else {
+          pill.classList.remove('visible');
+        }
+      }
+    });
+
+    // Send signal when leaving page
+    window.addEventListener('beforeunload', function() {
+      var elapsed = Math.round((Date.now() - startTime) / 1000);
+      var data = JSON.stringify({
+        novel_id: novelId,
+        chapter_number: chapterNum,
+        time_spent_seconds: elapsed,
+        scroll_depth: Math.round(maxScroll * 100)
+      });
+      navigator.sendBeacon('/novels/' + novelId + '/signal', data);
+    });
+  })();
+</script>
+{{ super() }}
+{% endblock %}

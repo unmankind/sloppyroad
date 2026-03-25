@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}{{ novel.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-xl animate-fade-in">
+  <!-- Novel Header -->
+  <header class="mb-2xl">
+    <div class="flex justify-between items-start flex-wrap gap-md">
+      <div class="flex gap-lg items-start">
+        {% if novel.cover_url %}
+        <div class="novel-detail-cover" style="position: relative;">
+          <img src="{{ novel.cover_url }}" alt="{{ novel.title }}">
+          <div class="novel-detail-cover-title" title="{{ novel.title }}">{{ novel.title }}</div>
+          {% if is_author and cover_asset %}
+          <button class="btn btn-ghost btn-sm regen-btn"
+                  data-asset-id="{{ cover_asset.id }}"
+                  data-novel-id="{{ novel.id }}"
+                  data-prompt="{{ cover_asset.prompt_used or '' }}"
+                  style="position: absolute; bottom: 0.5rem; right: 0.5rem; font-size: 0.7rem; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+            Regenerate
+          </button>
+          {% endif %}
+        </div>
+        {% elif novel.cover_generating %}
+        <div class="novel-detail-cover novel-detail-cover-generating">
+          <div class="cover-generating-shimmer"></div>
+          <span class="cover-generating-text">Cover generating...</span>
+        </div>
+        {% endif %}
+        <div>
+          <h1 class="mb-sm">{{ novel.title }}</h1>
+          <p class="text-muted text-lg font-serif">{{ novel.tagline or '' }}</p>
+          <div class="flex gap-sm mt-md flex-wrap">
+            {% for tag in novel.tags or [] %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+            <span class="badge {{ novel.status | status_badge_class }}">{{ novel.status | format_status }}</span>
+          </div>
+        </div>
+      </div>
+      {% if is_author %}
+      <div class="flex gap-sm items-center">
+        {% if world and not active_gen_job %}
+        <form method="post" action="/novels/{{ novel.id }}/generate" style="display: inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-primary">Generate Next Chapter</button>
+        </form>
+        {% endif %}
+        <a href="/novels/{{ novel.id }}/settings" class="btn btn-ghost">Settings</a>
+        {% if plan_type == 'free' %}
+        {% set ch_count = novel.chapter_count | default(0) %}
+        <span class="text-xs" style="color: {% if ch_count >= 3 %}var(--ember-400){% else %}var(--parchment-400){% endif %};">
+          Free Tier: {{ ch_count }}/3 chapters
+          {% if ch_count >= 3 %} — <a href="/dashboard/settings#api-keys" style="color: var(--arcane-400);">add API key</a> for unlimited{% endif %}
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if is_author %}
+  <!-- Author quick-nav to novel subpages -->
+  <nav class="mb-xl" style="display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 0.75rem 1rem; background: var(--void-800); border-radius: 0.5rem; border: 1px solid var(--void-600);">
+    <a href="/novels/{{ novel.id }}" class="btn btn-ghost btn-sm" style="font-size: 0.8rem;">Overview</a>
+    <a href="/novels/{{ novel.id }}/arcs" class="btn btn-ghost btn-sm" style="font-size: 0.8rem;">Arc Plans</a>
+    <a href="/novels/{{ novel.id }}/characters" class="btn btn-ghost btn-sm" style="font-size: 0.8rem;">Characters</a>
+    <a href="/novels/{{ novel.id }}/world" class="btn btn-ghost btn-sm" style="font-size: 0.8rem;">World</a>
+    <a href="/novels/{{ novel.id }}/chekhov" class="btn btn-ghost btn-sm" style="font-size: 0.8rem;">Chekhov Guns</a>
+    <a href="/novels/{{ novel.id }}/gallery" class="btn btn-ghost btn-sm" style="font-size: 0.8rem;">Gallery</a>
+    <a href="/novels/{{ novel.id }}/settings" class="btn btn-ghost btn-sm" style="font-size: 0.8rem;">Settings</a>
+  </nav>
+  {% endif %}
+
+  <div class="grid grid-cols-3 gap-xl">
+    <!-- Main Content Column (2/3) -->
+    <div style="grid-column: span 2;">
+      <!-- Synopsis / Description -->
+      {% if novel.description %}
+      <section class="mb-2xl font-serif text-lg" style="color: var(--parchment-200); line-height: 1.7;">
+        {% for para in novel.description.split('\n\n') %}
+        {% if para.strip() %}
+        <p {% if not loop.last %}class="mb-md"{% endif %}>{{ para.strip() }}</p>
+        {% endif %}
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      <!-- World Overview or Generation CTA -->
+      {% if world %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">World Overview</h3>
+          <a href="/novels/{{ novel.id }}/world" class="btn btn-ghost btn-sm">Explore</a>
+        </div>
+        <div class="card-body font-serif">
+          <p>{{ world.summary or 'The world awaits creation...' }}</p>
+        </div>
+      </section>
+
+      {% if is_author and not chapters and not active_gen_job %}
+      <!-- First Chapter CTA — world generated but no chapters yet -->
+      <section class="card mb-xl" style="border-color: var(--arcane-700); text-align: center; padding: var(--space-2xl) var(--space-xl);">
+        <div style="font-size: 2.5rem; margin-bottom: var(--space-md);">&#9997;</div>
+        <h2 class="font-display mb-md" style="color: var(--parchment-100);">The Slop Machine is Primed</h2>
+        <p class="font-serif text-lg mb-xl" style="color: var(--parchment-300); max-width: 32rem; margin: 0 auto;">
+          Your world has been hallucinated. The stage is set, the characters are standing around waiting for someone to tell them what to do.
+          Let&rsquo;s give them something to regret.
+        </p>
+        <form method="post" action="/novels/{{ novel.id }}/generate" style="display: inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-primary"
+                  style="font-size: 1.25rem; padding: 1rem 3rem; letter-spacing: 0.05em;">
+            Slop Out Chapter 1
+          </button>
+        </form>
+      </section>
+      {% endif %}
+
+      {% elif is_author %}
+      <section class="card mb-xl" style="border-color: var(--arcane-700); text-align: center; padding: var(--space-3xl) var(--space-xl);">
+        <div style="font-size: 3rem; margin-bottom: var(--space-lg);">&#127758;</div>
+        <h2 class="font-display mb-md" style="color: var(--parchment-100);">Time to Hallucinate a World</h2>
+        <p class="font-serif text-lg mb-sm" style="color: var(--parchment-300); max-width: 32rem; margin: 0 auto;">
+          Before slop can flow, the AI needs to dream up the basics &mdash;
+          cosmology, power systems, geography, history, and a cast of characters
+          it will immediately forget the details of.
+        </p>
+        <p class="text-sm text-muted mb-xl" style="max-width: 28rem; margin: var(--space-sm) auto var(--space-xl);">
+          The 8-stage world pipeline takes several minutes to generate a
+          surprisingly coherent world. This is a one-time process per novel.
+        </p>
+        <a href="/novels/{{ novel.id }}/world/generate" class="btn btn-primary"
+           style="font-size: 1.25rem; padding: 1rem 3rem; letter-spacing: 0.05em;">
+          Generate This World
+        </a>
+      </section>
+      {% endif %}
+
+      <!-- In-Progress Generation Banner -->
+      {% if active_gen_job %}
+      <section class="card mb-xl" style="border-color: var(--arcane-700); text-align: center; padding: var(--space-xl);">
+        <div style="font-size: 2rem; margin-bottom: var(--space-sm); animation: pulse 2s ease-in-out infinite;">&#9997;</div>
+        <h3 class="font-display mb-sm" style="color: var(--arcane-300);">Chapter {{ active_gen_job.chapter_number }} is being slopped...</h3>
+        <p class="text-sm text-muted mb-md">The machines are churning in the background.</p>
+        <a href="/novels/{{ novel.id }}/generate" class="btn btn-primary btn-sm">View Progress</a>
+      </section>
+      <style>@keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }</style>
+      {% endif %}
+
+      <!-- Chapter List -->
+      <section>
+        <div class="flex justify-between items-center mb-lg">
+          <h3>Chapters</h3>
+          {% set ch_count = chapters | length if chapters else 0 %}
+          <span class="text-muted text-sm">{{ ch_count }} chapter{{ ch_count | pluralize }}</span>
+        </div>
+
+        <div id="chapter-list"
+             hx-get="/novels/{{ novel.id }}/chapters-list?page=1"
+             hx-trigger="load"
+             hx-swap="innerHTML"
+             hx-indicator="#chapter-loading">
+          <!-- HTMX loads chapters here -->
+          <div id="chapter-loading" class="htmx-indicator">
+            {% include "components/loading_ambient.html" %}
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Sidebar Column (1/3) -->
+    <div>
+      <!-- Power System Summary -->
+      {% if power_system %}
+      <section class="card mb-lg">
+        <div class="card-header">
+          <h4 class="card-title" style="color: var(--ember-400);">Power System</h4>
+        </div>
+        <div class="card-body">
+          <p class="font-serif text-sm mb-md">{{ power_system.name or 'Unknown System' }}</p>
+          {% if power_system.ranks %}
+          <ul style="list-style: none;">
+            {% for rank in power_system.ranks[:5] %}
+            <li class="py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-sm" style="color: var(--parchment-300);">{{ rank.name }}</span>
+              {% if rank.is_current %}
+              <span class="badge badge-ember" style="float: right;">Current</span>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          <a href="/novels/{{ novel.id }}/world/power-system" class="btn btn-ghost btn-sm mt-md w-full">View Full System</a>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Character Gallery Preview -->
+      {% if characters %}
+      <section class="card mb-lg">
+        <div class="card-header">
+          <h4 class="card-title">Characters</h4>
+          <a href="/novels/{{ novel.id }}/characters" class="btn btn-ghost btn-sm">All</a>
+        </div>
+        <div class="card-body">
+          <div class="grid grid-cols-2 gap-sm">
+            {% for char in characters[:4] %}
+            <a href="/novels/{{ novel.id }}/characters/{{ char.id }}" class="text-center" style="text-decoration: none;">
+              <div class="character-card-portrait" style="aspect-ratio: 1; font-size: 1.5rem;">
+                {% if char.portrait_url %}
+                <img src="{{ char.portrait_url }}" alt="{{ char.name }}">
+                {% else %}
+                &#9734;
+                {% endif %}
+              </div>
+              <div class="text-sm mt-xs" style="color: var(--parchment-200);">{{ char.name }}</div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Novel Stats -->
+      <section class="card">
+        <div class="card-header">
+          <h4 class="card-title">Stats</h4>
+        </div>
+        <div class="card-body">
+          <ul style="list-style: none;">
+            <li class="flex justify-between py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-muted text-sm">Chapters</span>
+              <span class="text-sm">{{ novel.chapter_count | default(0) }}</span>
+            </li>
+            <li class="flex justify-between py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-muted text-sm">Words</span>
+              <span class="text-sm">{{ '{:,}'.format(novel.word_count) if novel.word_count else '0' }}</span>
+            </li>
+            <li class="flex justify-between py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-muted text-sm">Readers</span>
+              <span class="text-sm">{{ novel.reader_count | default(0) }}</span>
+            </li>
+            <li class="py-sm">
+              <span class="text-muted text-sm">Rate this slop</span>
+              <div class="mt-xs">
+                {% include "partials/star_rating.html" with context %}
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

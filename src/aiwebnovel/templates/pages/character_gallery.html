@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Characters — {{ novel.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-xl animate-fade-in">
+  <!-- Breadcrumb -->
+  <nav class="mb-lg">
+    <span class="text-muted text-sm">
+      <a href="/novels/{{ novel.id }}" style="color: var(--arcane-400); text-decoration: none;">{{ novel.title }}</a>
+      <span style="color: var(--ink-400); margin: 0 0.25rem;">/</span>
+      Characters
+    </span>
+  </nav>
+
+  <!-- Header -->
+  <header class="mb-2xl">
+    <div class="flex justify-between items-center flex-wrap gap-md">
+      <div>
+        <h1 class="font-display mb-sm" style="color: var(--parchment-100);">Character Gallery</h1>
+        <p class="text-muted font-serif">{{ characters | length }} character{{ 's' if characters | length != 1 else '' }} introduced so far</p>
+      </div>
+      <a href="/novels/{{ novel.id }}" class="btn btn-ghost btn-sm">Back to Novel</a>
+    </div>
+  </header>
+
+  {% if characters %}
+  <!-- Role Filter -->
+  <div class="flex gap-sm mb-xl flex-wrap">
+    <a href="/novels/{{ novel.id }}/characters"
+       class="badge {% if not role_filter %}badge-arcane{% else %}badge-default{% endif %}"
+       style="text-decoration: none; cursor: pointer;">All</a>
+    {% for role in roles %}
+    <a href="/novels/{{ novel.id }}/characters?role={{ role }}"
+       class="badge {% if role_filter == role %}badge-arcane{% else %}badge-default{% endif %}"
+       style="text-decoration: none; cursor: pointer;">{{ role | title }}</a>
+    {% endfor %}
+  </div>
+
+  <!-- Character Grid -->
+  <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+    {% for char in characters %}
+    <a href="/novels/{{ novel.id }}/characters/{{ char.id }}" style="text-decoration: none;">
+      <div class="card character-card" style="transition: var(--transition-base); cursor: pointer;">
+        <div class="character-card-portrait" style="aspect-ratio: 1;">
+          {% if char.portrait_url %}
+          <img src="{{ char.portrait_url }}" alt="{{ char.name }}" loading="lazy"
+               style="width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-sm);">
+          {% else %}
+          <span style="font-size: 2rem;">&#9734;</span>
+          {% endif %}
+        </div>
+        <div class="character-card-name">{{ char.name }}</div>
+        <div class="character-card-role">{{ char.role | default('Unknown') | title }}</div>
+        {% if char.power_rank %}
+        <div class="mb-sm">
+          <span class="badge badge-ember">{{ char.power_rank }}</span>
+        </div>
+        {% endif %}
+        {% if not char.is_alive %}
+        <div class="mb-sm">
+          <span class="badge badge-default" style="opacity: 0.7;">Deceased</span>
+        </div>
+        {% endif %}
+        {% if char.visual_appearance %}
+        <p class="text-sm text-muted font-serif" style="margin-top: var(--space-sm); line-height: 1.5;">
+          {{ char.visual_appearance[:100] }}{% if char.visual_appearance | length > 100 %}&hellip;{% endif %}
+        </p>
+        {% endif %}
+        <div class="character-card-stats">
+          {% if char.relationship_count %}
+          <span>{{ char.relationship_count }} connections</span>
+          {% endif %}
+          {% if char.introduced_at_chapter %}
+          <span>Ch. {{ char.introduced_at_chapter }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <!-- Empty State -->
+  <div class="card" style="text-align: center; padding: var(--space-3xl) var(--space-xl);">
+    <div style="font-size: 3rem; margin-bottom: var(--space-lg); opacity: 0.5;">&#9734;</div>
+    <h2 class="font-display mb-md" style="color: var(--parchment-200);">No Characters Yet</h2>
+    <p class="font-serif text-muted mb-xl" style="max-width: 28rem; margin: 0 auto var(--space-xl);">
+      Characters will appear here once the world has been forged and the story begins.
+    </p>
+    <a href="/novels/{{ novel.id }}" class="btn btn-secondary btn-sm">Return to Novel</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

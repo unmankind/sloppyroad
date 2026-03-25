@@ -1,0 +1,262 @@
+{% extends "author_base.html" %}
+
+{% block title %}Arc Plans — {{ selected_novel.title }}{% endblock %}
+
+{% block author_content %}
+{# Auto-refresh if any arc is actively generating #}
+{% set has_active = arcs | selectattr('status', 'in', ['generating', 'revision_requested']) | list %}
+{% if has_active %}
+<meta http-equiv="refresh" content="10">
+{% endif %}
+<div class="animate-fade-in">
+  <div class="flex justify-between items-center mb-xl">
+    <h2 class="font-display" style="color: var(--parchment-100);">Story Arcs</h2>
+    <div class="flex gap-md items-center">
+      <span class="text-muted text-sm">{{ arcs | length }} arc{{ 's' if arcs | length != 1 else '' }}</span>
+      <button type="button" class="btn btn-secondary btn-sm"
+              onclick="document.getElementById('generate-arc-modal').style.display='flex'">
+        &#9734; Generate Arc
+      </button>
+    </div>
+  </div>
+
+  {# Generate Arc Modal — hidden by default, shown via JS removing 'hidden' #}
+  <div id="generate-arc-modal" style="display: none; position: fixed; inset: 0; z-index: 50; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+    <div class="card" style="max-width: 32rem; width: 100%; padding: var(--space-xl);">
+      <h3 class="font-display mb-md" style="color: var(--parchment-100);">Conjure a New Arc</h3>
+      <p class="text-sm text-muted mb-lg font-serif">
+        The slop machine will dream up a multi-chapter arc based on where the story stands.
+        Give it direction below, or leave empty for fully autonomous slopping.
+      </p>
+      <form method="post" action="/novels/{{ novel_id }}/arcs/generate">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <textarea name="author_guidance" rows="4" class="form-textarea mb-md"
+                  placeholder="e.g. 'Focus on the rivalry with the second antagonist' or 'I want a training arc with a tournament'"
+                  style="font-family: var(--font-serif); font-size: 0.9rem; width: 100%;"></textarea>
+        <div class="flex gap-sm justify-end">
+          <button type="button" class="btn btn-ghost btn-sm"
+                  onclick="document.getElementById('generate-arc-modal').style.display='none'">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary btn-sm">Generate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if arcs %}
+    <div class="grid gap-lg">
+      {% for arc in arcs %}
+      <div class="card" style="padding: var(--space-lg);">
+        <div class="flex justify-between items-start mb-md">
+          <div>
+            {% if arc.arc_number %}
+            <span class="text-xs text-muted font-sans">Arc {{ arc.arc_number }}</span>
+            {% endif %}
+            <h3 class="font-display" style="color: var(--parchment-100); font-size: 1.15rem;">{{ arc.title }}</h3>
+          </div>
+          <div class="flex gap-xs items-center">
+            {% if arc.is_final_arc %}
+            <span class="badge badge-warning" style="font-size: 0.75rem;">Final Arc</span>
+            {% endif %}
+            <span class="badge {% if arc.status == 'in_progress' %}badge-primary{% elif arc.status in ('approved', 'completed') %}badge-success{% elif arc.status == 'generating' %}badge-default{% elif arc.status == 'failed' %}badge-ember{% else %}badge-default{% endif %}"
+                  style="font-size: 0.75rem;">{{ arc.status | replace('_', ' ') | title }}</span>
+          </div>
+        </div>
+
+        {# Status-specific messaging #}
+        {% if arc.status in ('generating', 'revision_requested') %}
+        <div class="mb-md" style="padding: var(--space-md); background: var(--void-800); border-radius: var(--radius-md); border: 1px solid var(--arcane-700);">
+          <span style="animation: pulse 2s ease-in-out infinite; display: inline-block;">&#9997;</span>
+          <span class="text-sm font-serif" style="color: var(--arcane-300);">
+            {% if arc.status == 'generating' %}The slop machine is conjuring this arc...{% else %}Revising arc based on your notes...{% endif %}
+          </span>
+        </div>
+        {% elif arc.status == 'failed' %}
+        <div class="mb-md" style="padding: var(--space-md); background: var(--void-800); border-radius: var(--radius-md); border: 1px solid var(--ember-600);">
+          <span class="text-sm" style="color: var(--ember-400);">&#9888; Arc generation failed.</span>
+          <span class="text-xs text-muted ml-sm">Use Retry below to try again.</span>
+        </div>
+        {% endif %}
+
+        <p class="text-sm font-serif mb-md" style="color: var(--parchment-300);">{{ arc.description[:300] }}{{ '...' if arc.description | length > 300 else '' }}</p>
+
+        <div class="flex gap-lg text-xs text-muted mb-md">
+          {% if arc.planned_chapters %}
+          <span>{{ arc.planned_chapters }} planned chapter{{ 's' if arc.planned_chapters != 1 else '' }}</span>
+          {% endif %}
+          {% if arc.target_chapter_start and arc.target_chapter_end %}
+          <span>Chapters {{ arc.target_chapter_start }}&ndash;{{ arc.target_chapter_end }}</span>
+          {% elif arc.target_chapter_start %}
+          <span>Starting at Ch. {{ arc.target_chapter_start }}</span>
+          {% endif %}
+          {% if arc.themes %}
+          <span>{{ arc.themes | length }} theme{{ 's' if arc.themes | length != 1 else '' }}</span>
+          {% endif %}
+        </div>
+
+        {# Expandable details #}
+        {% if arc.key_events or arc.character_arcs or arc.themes %}
+        <button type="button" class="btn btn-ghost btn-sm mb-sm" style="font-size: 0.75rem;"
+                onclick="this.textContent = this.textContent.includes('Show') ? 'Hide Details' : 'Show Details'; document.getElementById('detail-{{ arc.id }}').classList.toggle('hidden')">
+          Show Details
+        </button>
+        <div id="detail-{{ arc.id }}" class="hidden" style="border-top: 1px solid var(--ink-700); padding-top: var(--space-md);">
+          {# Full description #}
+          {% if arc.description | length > 300 %}
+          <div class="mb-md">
+            <span class="text-xs text-muted font-sans">Full Description</span>
+            <p class="text-sm font-serif mt-xs" style="color: var(--parchment-300);">{{ arc.description }}</p>
+          </div>
+          {% endif %}
+
+          {# Key Events #}
+          {% if arc.key_events %}
+          <div class="mb-md">
+            <span class="text-xs text-muted font-sans">Key Events</span>
+            <div class="mt-xs">
+              {% for event in arc.key_events | sort(attribute='event_order') %}
+              <div class="flex gap-sm py-xs" style="border-bottom: 1px solid var(--ink-800);">
+                <span class="text-xs" style="color: var(--arcane-400); min-width: 1.5rem;">{{ event.event_order }}.</span>
+                <div>
+                  <span class="text-sm" style="color: var(--parchment-200);">{{ event.description }}</span>
+                  <div class="flex gap-sm mt-xs">
+                    {% if event.chapter_target %}
+                    <span class="text-xs text-muted">Ch {{ event.chapter_target }}</span>
+                    {% endif %}
+                    {% if event.characters_involved %}
+                    <span class="text-xs text-muted">{{ event.characters_involved | join(', ') }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {# Character Arcs #}
+          {% if arc.character_arcs %}
+          <div class="mb-md">
+            <span class="text-xs text-muted font-sans">Character Arcs</span>
+            <div class="mt-xs">
+              {% for ca in arc.character_arcs %}
+              <div class="py-xs" style="border-bottom: 1px solid var(--ink-800);">
+                <span class="text-sm font-display" style="color: var(--parchment-100);">{{ ca.character_name }}</span>
+                <span class="text-xs text-muted ml-sm">{{ ca.arc_goal }}</span>
+                <div class="text-xs mt-xs" style="color: var(--parchment-400);">
+                  {{ ca.starting_state }} &rarr; {{ ca.ending_state }}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {# Themes #}
+          {% if arc.themes %}
+          <div class="mb-md">
+            <span class="text-xs text-muted font-sans">Themes</span>
+            <div class="mt-xs">
+              {% for theme in arc.themes %}
+              <div class="py-xs" style="border-bottom: 1px solid var(--ink-800);">
+                <span class="text-sm" style="color: var(--ember-300);">{{ theme.theme }}</span>
+                <span class="text-xs text-muted ml-sm">{{ theme.how_explored }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {# Chapter plans for this arc #}
+        {% if arc.chapter_plans %}
+        <div class="mb-md" style="border-top: 1px solid var(--ink-700); padding-top: var(--space-sm);">
+          <span class="text-xs text-muted font-sans">Chapter Plans:</span>
+          <div class="flex gap-sm flex-wrap mt-xs">
+            {% for plan in arc.chapter_plans | sort(attribute='chapter_number') %}
+            <span class="badge {% if plan.scene_outline %}badge-success{% else %}badge-default{% endif %}"
+                  style="font-size: 0.7rem;"
+                  title="{{ plan.title or 'Untitled' }}{% if plan.scene_outline %} ({{ plan.scene_outline | length }} scenes){% endif %}">
+              Ch {{ plan.chapter_number }}{% if plan.is_bridge %} &#9878;{% endif %}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# Action buttons #}
+        {% if arc.status in ('proposed', 'revised') %}
+        <div class="flex gap-sm flex-wrap" style="border-top: 1px solid var(--ink-700); padding-top: var(--space-md);">
+          <form method="post" action="/novels/{{ novel_id }}/arcs/{{ arc.id }}/approve">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-primary btn-sm">&#10003; Approve</button>
+          </form>
+          <button type="button" class="btn btn-secondary btn-sm"
+                  onclick="document.getElementById('revise-{{ arc.id }}').classList.toggle('hidden')">
+            &#9998; Revise
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm"
+                  onclick="document.getElementById('regen-{{ arc.id }}').classList.toggle('hidden')">
+            &#8635; Regenerate
+          </button>
+        </div>
+
+        {# Revise form #}
+        <div id="revise-{{ arc.id }}" class="hidden mt-md">
+          <form method="post" action="/novels/{{ novel_id }}/arcs/{{ arc.id }}/revise">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <textarea name="author_notes" rows="3" class="form-textarea mb-sm"
+                      placeholder="What would you like changed?"
+                      style="font-family: var(--font-serif); font-size: 0.9rem; width: 100%;"></textarea>
+            <button type="submit" class="btn btn-secondary btn-sm">Submit Revision</button>
+          </form>
+        </div>
+
+        {# Regenerate form #}
+        <div id="regen-{{ arc.id }}" class="hidden mt-md">
+          <form method="post" action="/novels/{{ novel_id }}/arcs/{{ arc.id }}/regenerate">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <textarea name="author_guidance" rows="3" class="form-textarea mb-sm"
+                      placeholder="New direction for this arc (or leave empty)"
+                      style="font-family: var(--font-serif); font-size: 0.9rem; width: 100%;"></textarea>
+            <button type="submit" class="btn btn-secondary btn-sm">Regenerate from Scratch</button>
+          </form>
+        </div>
+        {% elif arc.status == 'failed' %}
+        <div class="flex gap-sm" style="border-top: 1px solid var(--ink-700); padding-top: var(--space-md);">
+          <button type="button" class="btn btn-secondary btn-sm"
+                  onclick="document.getElementById('regen-{{ arc.id }}').classList.toggle('hidden')">
+            &#8635; Retry
+          </button>
+        </div>
+        <div id="regen-{{ arc.id }}" class="hidden mt-md">
+          <form method="post" action="/novels/{{ novel_id }}/arcs/{{ arc.id }}/regenerate">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <textarea name="author_guidance" rows="3" class="form-textarea mb-sm"
+                      placeholder="Any guidance for the retry?"
+                      style="font-family: var(--font-serif); font-size: 0.9rem; width: 100%;"></textarea>
+            <button type="submit" class="btn btn-secondary btn-sm">Regenerate</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card" style="text-align: center; padding: var(--space-3xl) var(--space-lg);">
+      <span style="font-size: 3rem; display: block; margin-bottom: var(--space-lg); opacity: 0.5;">&#9734;</span>
+      <p class="font-serif text-lg mb-md" style="color: var(--parchment-300);">No arcs yet.</p>
+      <p class="text-sm text-muted" style="max-width: 28rem; margin: 0 auto;">
+        {% if novel_chapter_count %}
+        Arcs will be auto-planned when you generate your next chapter.
+        Or generate one manually above to take the reins.
+        {% else %}
+        Generate your first chapter and an arc will be planned automatically.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

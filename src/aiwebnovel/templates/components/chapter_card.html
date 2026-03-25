@@ -1,0 +1,17 @@
+{# Chapter list item — used in novel_detail and browse pages #}
+<a href="/novels/{{ novel.id if novel else chapter.novel_id }}/chapters/{{ chapter.chapter_number }}"
+   class="chapter-card" hx-boost="true">
+  <div class="chapter-card-number">{{ chapter.chapter_number }}</div>
+  <div class="chapter-card-info">
+    <div class="chapter-card-title">{{ chapter.title or 'Untitled Chapter' }}</div>
+    <div class="chapter-card-meta">
+      {{ '{:,}'.format(chapter.word_count) if chapter.word_count else '---' }} words
+      {% if chapter.published_at %}
+      &middot; {{ chapter.published_at }}
+      {% endif %}
+    </div>
+  </div>
+  <span class="badge {% if chapter.status == 'published' %}badge-success{% elif chapter.status == 'draft' %}badge-warning{% elif chapter.status == 'generating' %}badge-arcane{% else %}badge-default{% endif %}">
+    {{ chapter.status | default('published') | title }}
+  </span>
+</a>

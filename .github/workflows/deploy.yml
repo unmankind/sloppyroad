@@ -1,0 +1,81 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      AIWN_JWT_SECRET_KEY: test-secret-for-ci-only
+      AIWN_DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+      AIWN_REDIS_URL: "redis://localhost:6379"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check src/ tests/ --select E,F,I
+
+      - name: Test
+        run: pytest tests/ -x -q
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to Hetzner
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/sloppyroad/app
+            # Backup database before deploy
+            BACKUP_DIR="/opt/sloppyroad/backups"
+            mkdir -p "$BACKUP_DIR"
+            BACKUP_FILE="$BACKUP_DIR/pre-deploy-$(date +%Y%m%d-%H%M%S).sql.gz"
+            docker exec aiwn-db pg_dump -U aiwn aiwn | gzip > "$BACKUP_FILE" && \
+              echo "DB backup saved: $BACKUP_FILE" || \
+              echo "DB backup failed (continuing deploy)"
+            # Keep only last 10 backups
+            ls -t "$BACKUP_DIR"/pre-deploy-*.sql.gz 2>/dev/null | tail -n +11 | xargs rm -f 2>/dev/null
+            git fetch origin main
+            # Save current commit for rollback
+            echo "$(git rev-parse HEAD)" > /opt/sloppyroad/backups/last-good-commit 2>/dev/null || true
+            git reset --hard origin/main
+            docker compose build --quiet
+            docker compose up -d --remove-orphans
+            # Wait for health check (app is behind Caddy, not exposed on host)
+            for i in $(seq 1 30); do
+              if docker exec aiwn-app curl -sf http://localhost:8003/health > /dev/null 2>&1; then
+                echo "Deploy successful — app healthy"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "Deploy warning — health check not passing after 60s"
+            docker compose logs --tail 20 app
+            exit 1

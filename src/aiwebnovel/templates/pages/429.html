@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Slow Down{% endblock %}
+
+{% block content %}
+<div class="container py-3xl text-center" style="min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+  <h1 class="font-display mb-md" style="font-size: 3rem; color: var(--parchment-400); letter-spacing: 0.15em;">
+    Slow Down, Speed Reader
+  </h1>
+  <p class="font-serif text-lg text-muted mb-2xl" style="max-width: 28rem;">
+    You're consuming slop faster than we can generate it. The machines need a moment to catch their breath.
+    {% if retry_after %}Try again in {{ retry_after }} seconds.{% endif %}
+  </p>
+  <div class="flex gap-md">
+    <a href="/" class="btn btn-secondary">Return Home</a>
+    <a href="/browse" class="btn btn-primary">Browse the Slop</a>
+  </div>
+</div>
+{% endblock %}

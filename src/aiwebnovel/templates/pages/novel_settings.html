@@ -1,0 +1,399 @@
+{% extends "author_base.html" %}
+
+{% block title %}Settings - {{ novel.title }}{% endblock %}
+
+{% block author_content %}
+<div class="animate-fade-in" style="max-width: 42rem;">
+  <h2 class="mb-sm">Novel Settings</h2>
+  <p class="text-muted text-sm mb-xl">{{ novel.title }}</p>
+
+  <div id="settings-flash" class="mb-lg" style="display: none;"></div>
+
+  <form id="settings-form" onsubmit="return saveSettings(event)">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    {# ── Planning & Generation ────────────────────────────────────── #}
+    <div class="card mb-xl">
+      <div class="card-header">
+        <h3 class="card-title">Planning &amp; Generation</h3>
+      </div>
+      <div class="card-body">
+        {# Planning Mode #}
+        <div class="mb-lg">
+          <label for="planning_mode" class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Planning Mode</label>
+          <select id="planning_mode" name="planning_mode" class="form-select"
+                  style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100);">
+            <option value="autonomous" {% if settings and settings.planning_mode == 'autonomous' %}selected{% endif %}>Autonomous &mdash; AI does whatever it wants</option>
+            <option value="supervised" {% if not settings or settings.planning_mode == 'supervised' %}selected{% endif %}>Supervised &mdash; AI proposes, you pretend to review</option>
+            <option value="collaborative" {% if settings and settings.planning_mode == 'collaborative' %}selected{% endif %}>Collaborative &mdash; you and the AI both pretend to plan</option>
+          </select>
+        </div>
+
+        {# POV Mode #}
+        <div class="mb-lg">
+          <label for="pov_mode" class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">POV Mode</label>
+          <select id="pov_mode" name="pov_mode" class="form-select"
+                  style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100);">
+            <option value="single" {% if not settings or settings.pov_mode == 'single' %}selected{% endif %}>Single &mdash; one protagonist, all the time</option>
+            <option value="rotating" {% if settings and settings.pov_mode == 'rotating' %}selected{% endif %}>Rotating &mdash; cycle through heads (they all sound the same)</option>
+            <option value="multi" {% if settings and settings.pov_mode == 'multi' %}selected{% endif %}>Multi &mdash; AI picks who's talking this time</option>
+          </select>
+        </div>
+
+        {# Content Rating #}
+        <div class="mb-lg">
+          <label for="content_rating" class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Content Rating</label>
+          <select id="content_rating" name="content_rating" class="form-select"
+                  style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100);">
+            <option value="everyone" {% if settings and settings.content_rating == 'everyone' %}selected{% endif %}>Everyone</option>
+            <option value="teen" {% if not settings or settings.content_rating == 'teen' %}selected{% endif %}>Teen</option>
+            <option value="mature" {% if settings and settings.content_rating == 'mature' %}selected{% endif %}>Mature</option>
+            <option value="adult" {% if settings and settings.content_rating == 'adult' %}selected{% endif %}>Adult</option>
+          </select>
+        </div>
+
+        {# Target Chapter Length #}
+        <div class="mb-lg">
+          <label for="target_chapter_length" class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Target Chapter Length (words)</label>
+          <input type="number" id="target_chapter_length" name="target_chapter_length"
+                 value="{{ settings.target_chapter_length if settings else 5000 }}"
+                 min="1000" max="20000" step="500"
+                 class="form-input"
+                 style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100);">
+        </div>
+
+        {# Temperature #}
+        <div class="mb-lg">
+          <label for="default_temperature" class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">
+            Generation Temperature: <span id="temp-display">{{ settings.default_temperature if settings else 0.7 }}</span>
+          </label>
+          <input type="range" id="default_temperature" name="default_temperature"
+                 value="{{ settings.default_temperature if settings else 0.7 }}"
+                 min="0" max="1.5" step="0.1"
+                 style="width: 100%; accent-color: var(--arcane-400);"
+                 oninput="document.getElementById('temp-display').textContent = this.value">
+          <div class="flex justify-between text-xs text-muted mt-xs">
+            <span>Precise (0)</span>
+            <span>Creative (1.5)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Model Configuration ──────────────────────────────────────── #}
+    <div class="card mb-xl">
+      <div class="card-header">
+        <h3 class="card-title">Model Configuration</h3>
+      </div>
+      <div class="card-body">
+        {% set current_gen_model = settings.generation_model if settings and settings.generation_model else '' %}
+        {% set current_analysis_model = settings.analysis_model if settings and settings.analysis_model else '' %}
+
+        {% if plan_type == 'free' %}
+        <p class="text-sm text-muted mb-md">
+          Free tier uses Haiku 4.5 for all generation.
+          <a href="/dashboard/settings#api-keys" style="color: var(--arcane-400);">Add an API key</a> to unlock model selection.
+        </p>
+        <div class="grid grid-cols-2 gap-lg">
+          <div>
+            <label class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Chapter Generation</label>
+            <select name="generation_model" disabled class="form-input"
+                    style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-300); opacity: 0.7;">
+              <option>Haiku 4.5 (free tier)</option>
+            </select>
+            <p class="text-xs text-muted mt-xs">Writes your chapters.</p>
+          </div>
+          <div>
+            <label class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Analysis &amp; Planning</label>
+            <select name="analysis_model" disabled class="form-input"
+                    style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-300); opacity: 0.7;">
+              <option>Haiku 4.5 (free tier)</option>
+            </select>
+            <p class="text-xs text-muted mt-xs">Plans arcs and analyzes chapters.</p>
+          </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-muted mb-md">
+          Choose which models power your novel. Bigger models write better but cost more.
+        </p>
+        <div class="grid grid-cols-2 gap-lg">
+          <div>
+            <label for="generation_model" class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Chapter Generation</label>
+            <select id="generation_model" name="generation_model" class="form-input"
+                    style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100);">
+              <option value="">Default (auto-select)</option>
+              {% for model in allowed_models %}
+              <option value="{{ model.id }}" {% if current_gen_model == model.id %}selected{% endif %}>{{ model.name }}</option>
+              {% endfor %}
+            </select>
+            <p class="text-xs text-muted mt-xs">Writes your chapters. Bigger = better prose, higher cost.</p>
+          </div>
+          <div>
+            <label for="analysis_model" class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Analysis &amp; Planning</label>
+            <select id="analysis_model" name="analysis_model" class="form-input"
+                    style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100);">
+              <option value="">Default (auto-select)</option>
+              {% for model in allowed_models %}
+              <option value="{{ model.id }}" {% if current_analysis_model == model.id %}selected{% endif %}>{{ model.name }}</option>
+              {% endfor %}
+            </select>
+            <p class="text-xs text-muted mt-xs">Plans arcs, analyzes chapters, and tracks continuity. A cheaper model works fine here.</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Autonomous Mode ──────────────────────────────────────────── #}
+    <div class="card mb-xl">
+      <div class="card-header">
+        <h3 class="card-title">Autonomous Generation</h3>
+      </div>
+      <div class="card-body">
+        {% if plan_type == 'free' %}
+        <div style="padding: 1rem; border: 1px dashed var(--border-subtle); border-radius: var(--radius-md); text-align: center;">
+          <p class="text-sm text-muted">Autonomous generation requires a BYOK API key.</p>
+          <a href="/dashboard/settings#api-keys" class="text-sm" style="color: var(--arcane-400);">Add your key</a>
+        </div>
+        {% else %}
+        <div class="mb-lg">
+          <label class="flex items-center gap-sm" style="cursor: pointer;">
+            <input type="checkbox" id="autonomous_generation_enabled" name="autonomous_generation_enabled"
+                   {% if settings and settings.autonomous_generation_enabled %}checked{% endif %}
+                   style="accent-color: var(--arcane-400); width: 1.25rem; height: 1.25rem;"
+                   onchange="toggleAutonomousFields(this.checked)">
+            <span class="text-sm">Enable autonomous chapter generation</span>
+          </label>
+          <p class="text-xs text-muted mt-xs" style="margin-left: 1.75rem;">
+            When enabled, the AI generates chapters on a schedule. Slop on autopilot.
+          </p>
+        </div>
+
+        <div id="autonomous-fields" {% if not settings or not settings.autonomous_generation_enabled %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+          {# Cadence #}
+          <div class="mb-lg">
+            <label for="autonomous_cadence_hours" class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Generation Cadence (hours)</label>
+            <input type="number" id="autonomous_cadence_hours" name="autonomous_cadence_hours"
+                   value="{{ settings.autonomous_cadence_hours if settings else 24 }}"
+                   min="1" max="168" step="1"
+                   class="form-input"
+                   style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100);">
+            <p class="text-xs text-muted mt-xs">How often to auto-generate a new chapter (1 = hourly, 24 = daily, 168 = weekly).</p>
+          </div>
+
+          {# Daily Budget #}
+          <div class="mb-lg">
+            <label for="autonomous_daily_budget_cents" class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Daily Budget Cap (cents)</label>
+            <input type="number" id="autonomous_daily_budget_cents" name="autonomous_daily_budget_cents"
+                   value="{{ settings.autonomous_daily_budget_cents if settings else 100 }}"
+                   min="10" max="5000" step="10"
+                   class="form-input"
+                   style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100);">
+            <p class="text-xs text-muted mt-xs">Maximum LLM spending per day for autonomous generation. 100 = $1.00.</p>
+          </div>
+
+          {# Skip Arc Boundaries #}
+          <div class="mb-lg">
+            <label class="flex items-center gap-sm" style="cursor: pointer;">
+              <input type="checkbox" name="autonomous_skip_arc_boundaries"
+                     {% if settings and settings.autonomous_skip_arc_boundaries %}checked{% endif %}
+                     style="accent-color: var(--arcane-400); width: 1.25rem; height: 1.25rem;">
+              <span class="text-sm">Skip arc boundaries</span>
+            </label>
+            <p class="text-xs text-muted mt-xs" style="margin-left: 1.75rem;">
+              Continue generating across arc boundaries without pausing for approval.
+            </p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Features ─────────────────────────────────────────────────── #}
+    <div class="card mb-xl">
+      <div class="card-header">
+        <h3 class="card-title">Features</h3>
+      </div>
+      <div class="card-body">
+        <div class="mb-lg">
+          <label class="flex items-center gap-sm" style="cursor: pointer;">
+            <input type="checkbox" name="reader_influence_enabled"
+                   {% if settings and settings.reader_influence_enabled %}checked{% endif %}
+                   style="accent-color: var(--arcane-400); width: 1.25rem; height: 1.25rem;">
+            <span class="text-sm">Enable reader influence</span>
+          </label>
+          <p class="text-xs text-muted mt-xs" style="margin-left: 1.75rem;">
+            Allow readers to influence story direction via Oracle questions, Butterfly choices, and faction alignment.
+          </p>
+        </div>
+
+        <div class="mb-lg">
+          <label class="flex items-center gap-sm" style="cursor: pointer;">
+            <input type="checkbox" name="image_generation_enabled"
+                   {% if settings and settings.image_generation_enabled %}checked{% endif %}
+                   style="accent-color: var(--arcane-400); width: 1.25rem; height: 1.25rem;">
+            <span class="text-sm">Enable image generation (premium)</span>
+          </label>
+          <p class="text-xs text-muted mt-xs" style="margin-left: 1.75rem;">
+            Generate portraits, maps, and scene illustrations. Uses separate image budget.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {# ── Visibility & Sharing ─────────────────────────────────────── #}
+    <div class="card mb-xl">
+      <div class="card-header">
+        <h3 class="card-title">Visibility &amp; Sharing</h3>
+      </div>
+      <div class="card-body">
+        <div class="mb-lg">
+          <label class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Public Visibility</label>
+          <div class="flex items-center gap-md">
+            <label class="flex items-center gap-sm" style="cursor: pointer;">
+              <input type="radio" name="visibility" value="private"
+                     {% if not novel.is_public %}checked{% endif %}
+                     hx-put="/novels/{{ novel.id }}/settings/visibility"
+                     hx-vals='{"is_public": "false"}'
+                     hx-target="#visibility-badge"
+                     hx-swap="innerHTML"
+                     style="accent-color: var(--arcane-400);">
+              <span class="text-sm">Private</span>
+            </label>
+            <label class="flex items-center gap-sm" style="cursor: pointer;">
+              <input type="radio" name="visibility" value="public"
+                     {% if novel.is_public %}checked{% endif %}
+                     hx-put="/novels/{{ novel.id }}/settings/visibility"
+                     hx-vals='{"is_public": "true"}'
+                     hx-target="#visibility-badge"
+                     hx-swap="innerHTML"
+                     style="accent-color: var(--arcane-400);">
+              <span class="text-sm">Public</span>
+            </label>
+            <span id="visibility-badge">
+              {% if novel.is_public %}
+              <span class="badge" style="color: var(--arcane-400);">Public</span>
+              {% else %}
+              <span class="badge" style="color: var(--parchment-400);">Private</span>
+              {% endif %}
+            </span>
+          </div>
+          <p class="text-xs text-muted mt-xs">Public novels appear on the browse page. Private novels are only accessible via share link.</p>
+        </div>
+
+        <div class="mb-lg">
+          <label class="text-sm text-muted" style="display: block; margin-bottom: 0.375rem;">Share Link</label>
+          <div id="share-link-container">
+            {% if novel.share_token %}
+            <div class="flex gap-sm items-center">
+              <input type="text" readonly
+                     value="https://{{ request.url.netloc }}/s/{{ novel.share_token }}"
+                     id="share-url"
+                     class="form-input"
+                     style="flex: 1; padding: 0.75rem 1rem; background: var(--ink-900); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-300); font-size: 0.875rem; cursor: text;"
+                     onclick="this.select()">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyShareLink()">Copy</button>
+            </div>
+            <div class="mt-sm">
+              <button type="button" class="btn btn-ghost btn-sm"
+                      hx-post="/novels/{{ novel.id }}/settings/regenerate-share-token"
+                      hx-target="#share-link-container"
+                      hx-swap="innerHTML"
+                      style="font-size: 0.75rem; color: var(--parchment-400);">
+                Regenerate share link
+              </button>
+            </div>
+            {% else %}
+            <button type="button" class="btn btn-secondary btn-sm"
+                    hx-post="/novels/{{ novel.id }}/settings/regenerate-share-token"
+                    hx-target="#share-link-container"
+                    hx-swap="innerHTML">
+              Generate share link
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Save Button ──────────────────────────────────────────────── #}
+    <div class="flex justify-end gap-md mb-2xl">
+      <a href="/novels/{{ novel.id }}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary" id="save-btn">Save Settings</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAutonomousFields(enabled) {
+  var fields = document.getElementById('autonomous-fields');
+  fields.style.opacity = enabled ? '1' : '0.5';
+  fields.style.pointerEvents = enabled ? 'auto' : 'none';
+}
+
+function saveSettings(evt) {
+  evt.preventDefault();
+  var form = document.getElementById('settings-form');
+  var btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  var data = {
+    planning_mode: form.planning_mode.value,
+    pov_mode: form.pov_mode.value,
+    content_rating: form.content_rating.value,
+    target_chapter_length: parseInt(form.target_chapter_length.value, 10),
+    default_temperature: parseFloat(form.default_temperature.value),
+    reader_influence_enabled: form.reader_influence_enabled.checked,
+    image_generation_enabled: form.image_generation_enabled.checked,
+    autonomous_generation_enabled: form.autonomous_generation_enabled.checked,
+    autonomous_cadence_hours: parseInt(form.autonomous_cadence_hours.value, 10),
+    autonomous_daily_budget_cents: parseInt(form.autonomous_daily_budget_cents.value, 10),
+    autonomous_skip_arc_boundaries: form.autonomous_skip_arc_boundaries.checked,
+    generation_model: form.generation_model ? form.generation_model.value : '',
+    analysis_model: form.analysis_model ? form.analysis_model.value : ''
+  };
+
+  fetch('/api/novels/{{ novel.id }}/settings', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    },
+    body: JSON.stringify(data)
+  }).then(function(resp) {
+    var flash = document.getElementById('settings-flash');
+    if (resp.ok) {
+      flash.style.display = 'block';
+      flash.innerHTML = '<div class="card" style="border-color: var(--arcane-400); padding: 0.75rem 1rem;"><p class="text-sm" style="color: var(--arcane-300);">Settings saved.</p></div>';
+      setTimeout(function() { flash.style.display = 'none'; }, 3000);
+    } else {
+      flash.style.display = 'block';
+      flash.innerHTML = '<div class="card" style="border-color: var(--ember-400); padding: 0.75rem 1rem;"><p class="text-sm" style="color: var(--ember-400);">Failed to save settings. Please try again.</p></div>';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Save Settings';
+  }).catch(function() {
+    var flash = document.getElementById('settings-flash');
+    flash.style.display = 'block';
+    flash.innerHTML = '<div class="card" style="border-color: var(--ember-400); padding: 0.75rem 1rem;"><p class="text-sm" style="color: var(--ember-400);">Network error. Please try again.</p></div>';
+    btn.disabled = false;
+    btn.textContent = 'Save Settings';
+  });
+
+  return false;
+}
+
+function copyShareLink() {
+  var input = document.getElementById('share-url');
+  if (!input) return;
+  navigator.clipboard.writeText(input.value).then(function() {
+    var btn = input.nextElementSibling;
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+  });
+}
+</script>
+{% endblock %}

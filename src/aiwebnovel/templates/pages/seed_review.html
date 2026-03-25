@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+
+{% block title %}Creative Seeds - {{ novel.title }}{% endblock %}
+
+{% block head_extra %}
+<style>
+  .seed-review-container {
+    max-width: 52rem;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .seed-review-header {
+    text-align: center;
+    margin-bottom: var(--space-2xl);
+    position: relative;
+  }
+  .seed-review-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(107, 69, 184, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .seed-review-icon {
+    font-size: 3.5rem;
+    display: block;
+    margin-bottom: var(--space-md);
+  }
+
+  /* Seed cards */
+  .seed-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+  }
+  .seed-card {
+    border-color: var(--ink-600);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+  }
+  .seed-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--arcane-700), var(--arcane-500), var(--arcane-700));
+    opacity: 0;
+    transition: opacity var(--transition-base);
+  }
+  .seed-card:hover::before {
+    opacity: 1;
+  }
+  .seed-card:hover {
+    border-color: var(--arcane-700);
+    box-shadow: 0 0 20px rgba(107, 69, 184, 0.08);
+  }
+  .seed-card .card-header {
+    margin-bottom: var(--space-sm);
+  }
+  .seed-title {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    color: var(--parchment-100);
+    margin-bottom: var(--space-xs);
+  }
+  .seed-text {
+    font-size: 0.95rem;
+    color: var(--parchment-300);
+    line-height: 1.7;
+    margin-bottom: 0;
+  }
+  .seed-actions {
+    flex-shrink: 0;
+  }
+
+  /* Lock button states */
+  .seed-lock-btn {
+    opacity: 0.35;
+    transition: opacity 0.2s, color 0.2s;
+  }
+  .seed-lock-btn:hover {
+    opacity: 0.8;
+  }
+  .seed-lock-btn.active {
+    opacity: 1;
+    color: var(--arcane-400);
+  }
+  .seed-card.locked {
+    border-color: var(--arcane-500);
+    background: rgba(139, 92, 246, 0.04);
+  }
+  .seed-card.locked .seed-lock-btn {
+    opacity: 1;
+    color: var(--arcane-400);
+  }
+
+  /* Global actions bar */
+  .seed-global-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--ink-900);
+    border: 1px solid var(--ink-700);
+    border-radius: var(--radius-lg);
+  }
+  .seed-global-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  .seed-count {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  /* Seed count stepper */
+  .seed-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--ink-600);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+  .seed-stepper-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    background: var(--ink-800);
+    color: var(--parchment-200);
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
+  }
+  .seed-stepper-btn:hover:not(:disabled) {
+    background: var(--arcane-700);
+    color: var(--parchment-100);
+  }
+  .seed-stepper-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .seed-stepper-val {
+    width: 2.2rem;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--parchment-100);
+    background: var(--ink-900);
+    border-left: 1px solid var(--ink-600);
+    border-right: 1px solid var(--ink-600);
+    line-height: 2rem;
+  }
+
+  /* Custom direction */
+  .custom-direction-section {
+    margin-bottom: var(--space-xl);
+  }
+
+  /* Confirm bar */
+  .seed-confirm-bar {
+    text-align: center;
+    padding: var(--space-xl) 0;
+  }
+  .seed-confirm-bar .btn {
+    font-size: 1.25rem;
+    padding: 1rem 3rem;
+    letter-spacing: 0.06em;
+  }
+
+  /* Removed seed fade-out */
+  .seed-card.htmx-swapping {
+    opacity: 0;
+    transform: scale(0.95);
+    transition: all 0.3s ease;
+  }
+
+  /* Empty state */
+  .seed-empty-state {
+    text-align: center;
+    padding: var(--space-2xl) 0;
+  }
+
+  /* Responsive */
+  @media (min-width: 769px) {
+    .seed-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 768px) {
+    .seed-global-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .seed-global-left {
+      justify-content: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-xl animate-fade-in">
+  <div class="seed-review-container">
+
+    <!-- Header -->
+    <div class="seed-review-header">
+      <span class="seed-review-icon">&#127793;</span>
+      <h1 class="font-display mb-sm" style="font-size: 2.2rem; color: var(--parchment-100);">
+        Your Diversity Dice
+      </h1>
+      <p class="font-serif text-lg" style="color: var(--parchment-300); max-width: 34rem; margin: 0 auto;">
+        These seeds will steer the hallucination, nudging
+        <span style="color: var(--arcane-300);">{{ novel.title }}</span>
+        away from the AI's default tropes (for once).
+        Keep the ones that intrigue you. Reroll the rest. Lock your favorites before shuffling.
+      </p>
+    </div>
+
+    <!-- Global actions -->
+    <div class="seed-global-actions">
+      <div class="seed-global-left">
+        <div class="seed-stepper">
+          <button type="button" class="seed-stepper-btn" id="seed-minus" onclick="removeSeed()" title="Remove a seed">&minus;</button>
+          <span class="seed-stepper-val" id="seed-stepper-val">{{ seeds | length }}</span>
+          <button type="button" class="seed-stepper-btn" id="seed-plus" onclick="addSeed()" title="Add a seed">&plus;</button>
+        </div>
+        <span class="seed-count" id="seed-count">seed{{ 's' if seeds | length != 1 else '' }} selected</span>
+      </div>
+      <div class="flex gap-sm">
+        <button class="btn btn-secondary btn-sm"
+                id="reroll-all-btn"
+                hx-post="/novels/{{ novel.id }}/world/seeds/reroll-all"
+                hx-target="#seed-grid"
+                hx-swap="innerHTML"
+                hx-vals="js:{locked_seed_ids: getLockedIds()}">
+          &#127922; Reroll Unlocked
+        </button>
+      </div>
+    </div>
+
+    <!-- Seed cards -->
+    <div class="seed-grid" id="seed-grid">
+      {% for seed in seeds %}
+      {% include "partials/seed_card.html" %}
+      {% endfor %}
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="seed-empty-state {% if seeds %}hidden{% endif %}">
+      <p style="font-size: 2rem; margin-bottom: var(--space-sm);">&#127793;</p>
+      <p class="text-muted">All seeds removed. Click &ldquo;Reroll Unlocked&rdquo; to get new ones.</p>
+    </div>
+
+    {% if not seeds %}
+    <div class="card mb-xl" style="text-align: center; border-color: var(--ink-600);">
+      <div class="card-body py-xl">
+        <p class="text-lg" style="color: var(--parchment-300);">No seeds yet.</p>
+        <p class="text-sm text-muted">Seeds are generated when you create a novel.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/novels/{{ novel.id }}/world/seeds/confirm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <!-- Custom direction -->
+      <div class="custom-direction-section">
+        <div class="card" style="border-color: var(--ink-600);">
+          <div class="card-body">
+            <label class="form-label" style="color: var(--parchment-200);">
+              &#9997; Add Your Own Direction <span class="text-sm text-muted">(optional)</span>
+            </label>
+            <textarea id="custom-direction" name="custom_direction"
+                      class="form-textarea"
+                      rows="3"
+                      placeholder="e.g. 'I want a world where magic is slowly dying' or 'The protagonist should have a rival who was once their closest friend'"
+                      style="font-family: var(--font-serif);">{{ custom_direction or '' }}</textarea>
+            <p class="form-hint">This will be fed directly to the AI alongside your seeds. Good luck.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm button -->
+      <div class="seed-confirm-bar">
+        <p class="font-serif mb-md" style="color: var(--ink-300); font-style: italic;">
+          When you're satisfied with your seeds, let the hallucination begin.
+        </p>
+        <button type="submit" class="btn btn-primary" id="forge-btn">
+          &#9876; Generate This World
+        </button>
+      </div>
+    </form>
+
+    <p class="text-center text-sm mt-lg">
+      <a href="/novels/{{ novel.id }}" style="color: var(--parchment-400);">Back to Novel</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  // Track locked seed IDs (client-side only)
+  var lockedSeeds = new Set();
+
+  // --- Lock toggle ---
+  window.toggleLock = function(btn, seedId) {
+    var card = document.getElementById('seed-' + seedId);
+    if (lockedSeeds.has(seedId)) {
+      lockedSeeds.delete(seedId);
+      btn.classList.remove('active');
+      btn.innerHTML = '&#128275;';
+      btn.title = 'Lock (protect during Reroll All)';
+      if (card) card.classList.remove('locked');
+    } else {
+      lockedSeeds.add(seedId);
+      btn.classList.add('active');
+      btn.innerHTML = '&#128274;';
+      btn.title = 'Unlock';
+      if (card) card.classList.add('locked');
+    }
+  };
+
+  // --- Get locked IDs as comma-separated string for HTMX hx-vals ---
+  window.getLockedIds = function() {
+    return Array.from(lockedSeeds).join(',');
+  };
+
+  // --- Re-apply lock state after reroll-all (grid innerHTML swap) ---
+  function reapplyLocks() {
+    lockedSeeds.forEach(function(id) {
+      var card = document.getElementById('seed-' + id);
+      if (card) {
+        card.classList.add('locked');
+        var btn = card.querySelector('.seed-lock-btn');
+        if (btn) {
+          btn.classList.add('active');
+          btn.innerHTML = '&#128274;';
+          btn.title = 'Unlock';
+        }
+      }
+    });
+  }
+
+  var SEED_MIN = 1;
+  var SEED_MAX = 7;
+  var novelId = {{ novel.id }};
+
+  // --- Update seed count display + stepper ---
+  function updateCount() {
+    var grid = document.getElementById('seed-grid');
+    var countEl = document.getElementById('seed-count');
+    var valEl = document.getElementById('seed-stepper-val');
+    var minusBtn = document.getElementById('seed-minus');
+    var plusBtn = document.getElementById('seed-plus');
+    if (grid && countEl) {
+      var count = grid.querySelectorAll('.seed-card').length;
+      countEl.textContent = 'seed' + (count !== 1 ? 's' : '') + ' selected';
+      if (valEl) valEl.textContent = count;
+      if (minusBtn) minusBtn.disabled = count <= SEED_MIN;
+      if (plusBtn) plusBtn.disabled = count >= SEED_MAX;
+    }
+  }
+
+  // --- Add a seed via HTMX ---
+  window.addSeed = function() {
+    var grid = document.getElementById('seed-grid');
+    var count = grid ? grid.querySelectorAll('.seed-card').length : 0;
+    if (count >= SEED_MAX) return;
+    htmx.ajax('POST', '/novels/' + novelId + '/world/seeds/add', {
+      target: '#seed-grid',
+      swap: 'beforeend'
+    });
+  };
+
+  // --- Remove the last unlocked seed ---
+  window.removeSeed = function() {
+    var grid = document.getElementById('seed-grid');
+    if (!grid) return;
+    var cards = grid.querySelectorAll('.seed-card');
+    if (cards.length <= SEED_MIN) return;
+    // Find last unlocked seed (prefer removing unlocked)
+    var target = null;
+    for (var i = cards.length - 1; i >= 0; i--) {
+      if (!cards[i].classList.contains('locked')) {
+        target = cards[i];
+        break;
+      }
+    }
+    if (!target) return; // all locked, don't remove
+    var seedId = target.getAttribute('data-seed-id');
+    htmx.ajax('DELETE', '/novels/' + novelId + '/world/seeds/' + seedId, {
+      target: '#seed-' + seedId,
+      swap: 'outerHTML swap:200ms'
+    });
+  };
+
+  // --- Show/hide empty state ---
+  function checkEmpty() {
+    var grid = document.getElementById('seed-grid');
+    var empty = document.getElementById('empty-state');
+    if (grid && empty) {
+      var hasCards = grid.querySelector('.seed-card') !== null;
+      empty.classList.toggle('hidden', hasCards);
+    }
+    updateCount();
+  }
+
+  // --- After any HTMX swap settles, update UI state ---
+  document.body.addEventListener('htmx:afterSettle', function(evt) {
+    var target = evt.detail.target;
+    // Re-apply locks after reroll-all replaces grid innerHTML
+    if (target && target.id === 'seed-grid') {
+      reapplyLocks();
+    }
+    checkEmpty();
+  });
+})();
+</script>
+{% endblock %}

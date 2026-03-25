@@ -1,0 +1,27 @@
+{% for chapter in chapters %}
+<a href="/novels/{{ novel_id }}/chapters/{{ chapter.chapter_number }}"
+   class="card chapter-card" hx-boost="true">
+  <div class="chapter-card-number">{{ chapter.chapter_number }}</div>
+  <div class="chapter-card-info">
+    <div class="chapter-card-title">{{ chapter.title or 'Untitled Chapter' }}</div>
+    <div class="chapter-card-meta">
+      {{ '{:,}'.format(chapter.word_count) if chapter.word_count else '---' }} words
+      &middot; {{ chapter.created_at.strftime('%b %d, %Y') if chapter.created_at else '' }}
+    </div>
+  </div>
+  {% set display_status = 'published' if chapter.status in ('published', 'draft') else chapter.status %}
+  <span class="badge {% if display_status == 'published' %}badge-success{% elif display_status == 'review' %}badge-warning{% else %}badge-default{% endif %}">
+    {{ display_status | title }}
+  </span>
+</a>
+{% endfor %}
+
+{% if has_more %}
+<div hx-get="/novels/{{ novel_id }}/chapters-list?page={{ page + 1 }}"
+     hx-trigger="revealed"
+     hx-swap="afterend">
+  <div class="text-center py-md">
+    <span class="text-muted text-sm">Loading more chapters...</span>
+  </div>
+</div>
+{% endif %}

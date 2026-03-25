@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}{{ character.name }} — {{ novel.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-xl animate-fade-in">
+  <!-- Breadcrumb -->
+  <nav class="mb-lg">
+    <span class="text-muted text-sm">
+      <a href="/novels/{{ novel.id }}" style="color: var(--arcane-400); text-decoration: none;">{{ novel.title }}</a>
+      <span style="color: var(--ink-400); margin: 0 0.25rem;">/</span>
+      <a href="/novels/{{ novel.id }}/characters" style="color: var(--arcane-400); text-decoration: none;">Characters</a>
+      <span style="color: var(--ink-400); margin: 0 0.25rem;">/</span>
+      {{ character.name }}
+    </span>
+  </nav>
+
+  <div class="grid grid-cols-3 gap-xl">
+    <!-- Sidebar (1/3) — Portrait & Quick Info -->
+    <div>
+      <!-- Portrait -->
+      <div class="card mb-lg">
+        <div class="character-card-portrait" style="aspect-ratio: 3/4; min-height: 280px;">
+          {% if portrait_url %}
+          <img src="{{ portrait_url }}" alt="{{ character.name }}" loading="lazy"
+               style="width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-sm);">
+          {% else %}
+          <span style="font-size: 3rem;">&#9734;</span>
+          {% endif %}
+        </div>
+        <div class="card-body" style="text-align: center;">
+          <h2 class="font-display mb-xs" style="color: var(--parchment-100);">{{ character.name }}</h2>
+          <span class="badge {% if character.role == 'protagonist' %}badge-arcane{% elif character.role == 'antagonist' %}badge-ember{% else %}badge-default{% endif %}">
+            {{ character.role | title }}
+          </span>
+          {% if not character.is_alive %}
+          <span class="badge badge-default" style="opacity: 0.7; margin-left: var(--space-xs);">Deceased</span>
+          {% endif %}
+          {% if portrait_asset and is_author %}
+          <div class="mt-sm">
+            <button class="btn btn-ghost btn-sm regen-btn"
+                    data-asset-id="{{ portrait_asset.id }}"
+                    data-novel-id="{{ novel.id }}"
+                    data-prompt="{{ portrait_asset.prompt_used or '' }}"
+                    style="font-size: 0.75rem;">
+              Regenerate Portrait
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="card mb-lg">
+        <div class="card-header">
+          <h4 class="card-title">Details</h4>
+        </div>
+        <div class="card-body">
+          <ul style="list-style: none;">
+            {% if faction %}
+            <li class="flex justify-between py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-muted text-sm">Faction</span>
+              <span class="text-sm" style="color: var(--parchment-200);">{{ faction.name }}</span>
+            </li>
+            {% endif %}
+            {% if current_region %}
+            <li class="flex justify-between py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-muted text-sm">Location</span>
+              <span class="text-sm" style="color: var(--parchment-200);">{{ current_region.name }}</span>
+            </li>
+            {% endif %}
+            {% if character.introduced_at_chapter %}
+            <li class="flex justify-between py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-muted text-sm">Introduced</span>
+              <span class="text-sm" style="color: var(--parchment-200);">Chapter {{ character.introduced_at_chapter }}</span>
+            </li>
+            {% endif %}
+            <li class="flex justify-between py-sm">
+              <span class="text-muted text-sm">Status</span>
+              <span class="text-sm" style="color: {% if character.is_alive %}var(--parchment-200){% else %}var(--ember-400){% endif %};">
+                {{ 'Alive' if character.is_alive else 'Deceased' }}
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Power Rank -->
+      {% if power_profile %}
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title" style="color: var(--ember-400);">Power</h4>
+        </div>
+        <div class="card-body">
+          <div class="mb-md">
+            <span class="text-muted text-sm">Current Rank</span>
+            <div class="mt-xs">
+              <span class="badge badge-ember">{{ power_profile.rank_name }}</span>
+            </div>
+          </div>
+          {% if power_profile.rank_description %}
+          <div>
+            <span class="text-muted text-sm">Description</span>
+            <p class="font-serif text-sm mt-xs" style="color: var(--parchment-300);">{{ power_profile.rank_description }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Main Content (2/3) -->
+    <div style="grid-column: span 2;">
+      <!-- Description -->
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Biography</h3>
+        </div>
+        <div class="card-body">
+          <p class="font-serif text-lg" style="color: var(--parchment-200); line-height: 1.7;">
+            {{ character.description }}
+          </p>
+        </div>
+      </section>
+
+      <!-- Visual Appearance -->
+      {% if character.visual_appearance %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Appearance</h3>
+        </div>
+        <div class="card-body">
+          <p class="font-serif" style="color: var(--parchment-200); line-height: 1.7;">
+            {{ character.visual_appearance }}
+          </p>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Background -->
+      {% if character.background %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Background</h3>
+        </div>
+        <div class="card-body">
+          <p class="font-serif" style="color: var(--parchment-200); line-height: 1.7;">
+            {{ character.background }}
+          </p>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Motivation & Goals -->
+      {% if character.motivation or character.current_goal %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Motivation &amp; Goals</h3>
+        </div>
+        <div class="card-body">
+          {% if character.motivation %}
+          <div class="mb-lg">
+            <h4 class="text-sm text-muted mb-sm">Core Motivation</h4>
+            <p class="font-serif" style="color: var(--parchment-200); line-height: 1.7;">{{ character.motivation }}</p>
+          </div>
+          {% endif %}
+          {% if character.current_goal %}
+          <div>
+            <h4 class="text-sm text-muted mb-sm">Current Goal</h4>
+            <p class="font-serif" style="color: var(--parchment-200); line-height: 1.7;">{{ character.current_goal }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Personality Traits -->
+      {% if character.personality_traits %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Personality</h3>
+        </div>
+        <div class="card-body">
+          <div class="flex gap-sm flex-wrap">
+            {% for trait in character.personality_traits %}
+            <span class="badge badge-default">{{ trait }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Relationships -->
+      {% if relationships %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Relationships</h3>
+        </div>
+        <div class="card-body">
+          {% for rel in relationships %}
+          <div class="flex items-center gap-md py-md" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            <div class="character-card-portrait" style="width: 48px; height: 48px; font-size: 1rem; flex-shrink: 0;">
+              &#9734;
+            </div>
+            <div style="flex: 1;">
+              <a href="/novels/{{ novel.id }}/characters/{{ rel.other_id }}" style="color: var(--parchment-100); text-decoration: none;">
+                <strong>{{ rel.other_name }}</strong>
+              </a>
+              {% if rel.other_role %}
+              <span class="text-xs text-muted">({{ rel.other_role | title }})</span>
+              {% endif %}
+              <div class="text-sm text-muted">{{ rel.relationship_type | title }}</div>
+              {% if rel.description %}
+              <p class="text-sm font-serif mt-xs" style="color: var(--parchment-300);">{{ rel.description }}</p>
+              {% endif %}
+            </div>
+            <div class="text-sm" style="color: var(--arcane-400);">
+              {% if rel.sentiment > 0.3 %}Positive{% elif rel.sentiment < -0.3 %}Hostile{% else %}Neutral{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Arc Summary -->
+      {% if character.arc_summary %}
+      <section class="card">
+        <div class="card-header">
+          <h3 class="card-title">Arc Summary</h3>
+        </div>
+        <div class="card-body">
+          <p class="font-serif" style="color: var(--parchment-200); line-height: 1.7;">
+            {{ character.arc_summary }}
+          </p>
+        </div>
+      </section>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{# Bestiary-style character card — portrait, name, role, power rank, relationships #}
+<div class="card character-card">
+  <div class="character-card-portrait">
+    {% if char.portrait_url %}
+    <img src="{{ char.portrait_url }}" alt="{{ char.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+    {% else %}
+    &#9734;
+    {% endif %}
+  </div>
+  <div class="character-card-name">{{ char.name }}</div>
+  <div class="character-card-role">{{ char.role | default('Unknown') }}</div>
+  {% if char.power_rank %}
+  <div class="mb-sm">
+    <span class="badge badge-ember">{{ char.power_rank }}</span>
+  </div>
+  {% endif %}
+  <div class="character-card-stats">
+    {% if char.relationship_count is defined %}
+    <span>{{ char.relationship_count }} connections</span>
+    {% endif %}
+    {% if char.chapter_appearances is defined %}
+    <span>{{ char.chapter_appearances }} appearances</span>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,10 @@
+{# Reusable tier badge — include with: {% include "components/tier_badge.html" %} #}
+{# Requires `plan_type` in template context #}
+{% set plan = plan_type | default('free') %}
+{% if plan == 'admin' %}
+<span class="badge badge-arcane" style="font-size: 0.65rem;">Admin</span>
+{% elif plan == 'byok' %}
+<span class="badge badge-arcane" style="font-size: 0.65rem;">BYOK</span>
+{% else %}
+<span class="badge badge-default" style="font-size: 0.65rem;">Free</span>
+{% endif %}

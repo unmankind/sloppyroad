@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
+  <title>{% block title %}SloppyRoad{% endblock %} — Certified AI Slop</title>
+  <meta name="description" content="{% block meta_description %}AI-generated progression fantasy web novels. Why worry whether your favorite web novel is AI slop when you could know for sure?{% endblock %}">
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
+  <meta property="og:title" content="{% block og_title %}SloppyRoad — Certified AI Slop{% endblock %}">
+  <meta property="og:description" content="AI-generated progression fantasy web novels with deep continuity and suspiciously coherent power systems.">
+  <meta property="og:type" content="website">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}?v=6">
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <a href="#main-content" class="sr-only" style="position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; z-index: 9999; padding: 0.5rem 1rem; background: var(--arcane-500); color: white; text-decoration: none;"
+     onfocus="this.style.position='fixed'; this.style.left='0.5rem'; this.style.top='0.5rem'; this.style.width='auto'; this.style.height='auto';"
+     onblur="this.style.position='absolute'; this.style.left='-9999px'; this.style.width='1px'; this.style.height='1px';">Skip to content</a>
+  <!-- Navigation -->
+  <nav class="navbar" aria-label="Main navigation">
+    <div class="navbar-inner">
+      <a href="/" class="navbar-logo">SloppyRoad</a>
+
+      <ul class="navbar-links" id="nav-links">
+        <li><a href="/browse">Browse</a></li>
+        {% if current_author %}
+        <li><a href="/dashboard">Dashboard</a></li>
+        {% endif %}
+      </ul>
+
+      <div class="navbar-actions">
+        {% if current_author %}
+          <!-- Notification Bell -->
+          <div class="relative" id="notification-container">
+            {% include "components/notification_bell.html" %}
+          </div>
+          <a href="/dashboard" class="btn btn-ghost btn-sm">
+            {{ current_author.pen_name or current_author.email }}
+          </a>
+          <a href="/auth/logout" class="btn btn-ghost btn-sm" style="color: var(--ink-400);">Logout</a>
+        {% else %}
+          <a href="/auth/login" class="btn btn-secondary btn-sm">Log In</a>
+          <a href="/auth/login" class="btn btn-primary btn-sm">Start Slopping</a>
+        {% endif %}
+
+        <button class="navbar-toggle" aria-label="Toggle navigation">
+          &#9776;
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      {% if cosmic_quote %}
+      <p class="cosmic-quote">"{{ cosmic_quote }}"</p>
+      {% else %}
+      <p class="cosmic-quote">"Why worry whether your favorite web novel is AI slop when you could know for sure?"</p>
+      {% endif %}
+      <p class="footer-meta">
+        SloppyRoad &mdash; Artisanal AI Slop, Ethically Sourced &middot;
+        <a href="/browse">Browse the Slop</a>
+      </p>
+      <p class="footer-meta" style="margin-top: var(--space-xs); font-size: 0.75rem;">
+        <a href="/terms">Terms</a> &middot;
+        <a href="/privacy">Privacy</a>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="{{ url_for('static', path='js/htmx.min.js') }}?v=2.0.4"></script>
+  <script src="{{ url_for('static', path='js/app.js') }}?v=3"></script>
+  <script>
+  (function() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (!meta) return;
+    var token = meta.content;
+
+    // Auto-inject hidden csrf_token field into non-GET forms on submit
+    document.addEventListener('submit', function(e) {
+      var form = e.target;
+      if (form.method && form.method.toLowerCase() !== 'get') {
+        if (!form.querySelector('input[name="csrf_token"]')) {
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'csrf_token';
+          input.value = token;
+          form.appendChild(input);
+        }
+      }
+    });
+
+    // Send X-CSRF-Token header on all HTMX requests
+    document.addEventListener('htmx:configRequest', function(e) {
+      e.detail.headers['X-CSRF-Token'] = token;
+    });
+  })();
+  </script>
+  {% block scripts %}{% endblock %}
+  {% if current_author %}
+  {% include "components/upgrade_modal.html" %}
+  {% include "partials/regen_modal.html" %}
+  {% endif %}
+</body>
+</html>

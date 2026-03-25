@@ -1,0 +1,545 @@
+{% extends "base.html" %}
+
+{% block title %}World — {{ novel.title }}{% endblock %}
+
+{# ── Safety macro: recursively render any value without raw dict/list output ── #}
+{% macro render_value(val) %}
+  {% if val is mapping %}
+    <dl class="world-dl">
+      {% for k, v in val.items() %}
+        <dt>{{ k | replace('_', ' ') | title }}</dt>
+        <dd>{{ render_value(v) }}</dd>
+      {% endfor %}
+    </dl>
+  {% elif val is iterable and val is not string %}
+    <ul class="world-ul">
+      {% for item in val %}
+        <li>{{ render_value(item) }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ val }}
+  {% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="container py-xl animate-fade-in">
+  <!-- Breadcrumb -->
+  <nav class="mb-lg">
+    <span class="text-muted text-sm">
+      <a href="/novels/{{ novel.id }}" style="color: var(--arcane-400); text-decoration: none;">{{ novel.title }}</a>
+      <span style="color: var(--ink-400); margin: 0 0.25rem;">/</span>
+      World
+    </span>
+  </nav>
+
+  <!-- Header -->
+  <header class="mb-2xl">
+    <div class="flex justify-between items-center flex-wrap gap-md">
+      <div>
+        <h1 class="font-display mb-sm" style="color: var(--parchment-100);">World Atlas</h1>
+        <p class="text-muted font-serif">Everything the AI confidently made up about {{ novel.title }}</p>
+      </div>
+      <a href="/novels/{{ novel.id }}" class="btn btn-ghost btn-sm">Back to Novel</a>
+    </div>
+  </header>
+
+  {% if has_world %}
+  <div class="grid grid-cols-3 gap-xl">
+    <!-- Main Content (2/3) -->
+    <div style="grid-column: span 2;">
+      <!-- Map Placeholder -->
+      <section class="card mb-xl">
+        <div class="card-body" style="text-align: center; padding: var(--space-3xl); background: linear-gradient(135deg, var(--ink-900), var(--ink-700));">
+          <div style="font-size: 4rem; margin-bottom: var(--space-md); opacity: 0.4;">&#127758;</div>
+          <p class="text-muted font-serif">World map — coming soon</p>
+        </div>
+      </section>
+
+      <!-- Cosmology -->
+      {% if cosmology %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Cosmology</h3>
+        </div>
+        <div class="card-body">
+          {% if cosmology.fundamental_forces %}
+          <div class="mb-lg">
+            <h4 class="text-sm text-muted mb-sm">Fundamental Forces</h4>
+            {% for force in cosmology.fundamental_forces %}
+            <div class="world-item py-sm" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+              {% if force is mapping %}
+              <p class="text-sm" style="color: var(--arcane-400); font-weight: 600;">{{ force.name }}</p>
+              {% if force.description %}<p class="font-serif text-sm mt-xs" style="color: var(--parchment-300); line-height: 1.6;">{{ force.description }}</p>{% endif %}
+              {% if force.mortal_interaction %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Mortal interaction:</span> {{ force.mortal_interaction }}</p>{% endif %}
+              {% else %}
+              <p class="text-sm" style="color: var(--parchment-100);">{{ force }}</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if cosmology.planes_of_existence %}
+          <div class="mb-lg">
+            <h4 class="text-sm text-muted mb-sm">Planes of Existence</h4>
+            {% for plane in cosmology.planes_of_existence %}
+            <div class="world-item py-sm" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+              {% if plane is mapping %}
+              <p class="text-sm" style="color: var(--parchment-100); font-weight: 600;">{{ plane.name }}</p>
+              {% if plane.description %}<p class="font-serif text-sm mt-xs" style="color: var(--parchment-300); line-height: 1.6;">{{ plane.description }}</p>{% endif %}
+              {% if plane.accessibility_requirements %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Access:</span> {{ plane.accessibility_requirements }}</p>{% endif %}
+              {% else %}
+              <p class="text-sm" style="color: var(--parchment-100);">{{ plane }}</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if cosmology.energy_types %}
+          <div class="mb-lg">
+            <h4 class="text-sm text-muted mb-sm">Energy Types</h4>
+            {% for energy in cosmology.energy_types %}
+            <div class="world-item py-sm" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+              {% if energy is mapping %}
+              <p class="text-sm" style="color: var(--arcane-400); font-weight: 600;">{{ energy.name }}</p>
+              {% if energy.properties %}<p class="font-serif text-sm mt-xs" style="color: var(--parchment-300); line-height: 1.6;">{{ energy.properties }}</p>{% endif %}
+              {% if energy.source %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Source:</span> {{ energy.source }}</p>{% endif %}
+              {% else %}
+              <p class="text-sm" style="color: var(--parchment-100);">{{ energy }}</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if cosmology.cosmic_laws %}
+          <div class="mb-lg">
+            <h4 class="text-sm text-muted mb-sm">Cosmic Laws</h4>
+            {% for law in cosmology.cosmic_laws %}
+            <div class="py-sm" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+              {% if law is mapping %}
+              <p class="font-serif text-sm" style="color: var(--parchment-200); line-height: 1.6;">{{ law.description }}</p>
+              {% else %}
+              <p class="font-serif text-sm" style="color: var(--parchment-200); line-height: 1.6;">{{ law }}</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if cosmology.reality_tiers %}
+          <div>
+            <h4 class="text-sm text-muted mb-sm">Reality Tiers</h4>
+            {% for tier in cosmology.reality_tiers %}
+            <div class="world-item py-sm" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+              {% if tier is mapping %}
+              <div class="flex items-center gap-sm mb-xs">
+                <span class="badge badge-default">{{ tier.tier_name }}</span>
+                {% if tier.beings %}<span class="text-xs text-muted">{{ tier.beings }}</span>{% endif %}
+              </div>
+              {% if tier.description %}<p class="font-serif text-sm" style="color: var(--parchment-300); line-height: 1.6;">{{ tier.description }}</p>{% endif %}
+              {% if tier.power_ceiling_description %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Power ceiling:</span> {{ tier.power_ceiling_description }}</p>{% endif %}
+              {% else %}
+              <span class="badge badge-default">{{ tier }}</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Regions -->
+      {% if regions %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Regions</h3>
+          <span class="text-muted text-sm">{{ regions | length }} discovered</span>
+        </div>
+        <div class="card-body">
+          {% for region in regions %}
+          <div class="py-md" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            <div class="flex justify-between items-start mb-sm">
+              <h4 style="color: var(--parchment-100);">{{ region.name }}</h4>
+              <div class="flex gap-sm">
+                {% if region.climate %}
+                <span class="badge badge-default">{{ region.climate | title }}</span>
+                {% endif %}
+                {% if region.parent_region %}
+                <span class="badge badge-default">{{ region.parent_region }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <p class="font-serif text-sm" style="color: var(--parchment-300); line-height: 1.6;">
+              {{ region.description }}
+            </p>
+            {% if region.notable_features %}
+            <p class="text-xs mt-sm" style="color: var(--arcane-400);">
+              {{ render_value(region.notable_features) }}
+            </p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- History: Eras -->
+      {% if history_eras %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Historical Eras</h3>
+        </div>
+        <div class="card-body">
+          {% for era in history_eras %}
+          <div class="flex gap-md py-md" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            <div style="width: 4px; background: linear-gradient(180deg, var(--arcane-700), var(--arcane-400)); border-radius: 2px; flex-shrink: 0;"></div>
+            <div>
+              <div class="flex items-center gap-sm mb-xs">
+                <h4 class="text-sm" style="color: var(--parchment-100);">{{ era.era_name }}</h4>
+                {% if era.duration %}
+                <span class="badge badge-default" style="font-size: 0.65rem;">{{ era.duration }}</span>
+                {% endif %}
+              </div>
+              <p class="font-serif text-sm" style="color: var(--parchment-300); line-height: 1.6;">
+                {{ era.description }}
+              </p>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- History: Events -->
+      {% if history_events %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Key Events</h3>
+        </div>
+        <div class="card-body">
+          {% for event in history_events %}
+          <div class="flex gap-md py-md" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            <div style="width: 4px; background: linear-gradient(180deg, var(--ember-700), var(--ember-400)); border-radius: 2px; flex-shrink: 0;"></div>
+            <div>
+              <div class="flex items-center gap-sm mb-xs">
+                <h4 class="text-sm" style="color: var(--parchment-100);">{{ event.name }}</h4>
+                {% if event.era %}
+                <span class="badge badge-default" style="font-size: 0.65rem;">{{ event.era }}</span>
+                {% endif %}
+              </div>
+              <p class="font-serif text-sm" style="color: var(--parchment-300); line-height: 1.6;">
+                {{ event.description }}
+              </p>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Current State -->
+      {% if current_state %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Current State of the World</h3>
+        </div>
+        <div class="card-body">
+          {% if current_state.political_landscape %}
+          <div class="mb-lg">
+            <h4 class="text-sm text-muted mb-sm">Political Landscape</h4>
+            <p class="font-serif text-sm" style="color: var(--parchment-200); line-height: 1.7;">
+              {{ render_value(current_state.political_landscape) }}
+            </p>
+          </div>
+          {% endif %}
+          {% if current_state.power_balance %}
+          <div class="mb-lg">
+            <h4 class="text-sm text-muted mb-sm">Power Balance</h4>
+            <p class="font-serif text-sm" style="color: var(--parchment-200); line-height: 1.7;">
+              {{ render_value(current_state.power_balance) }}
+            </p>
+          </div>
+          {% endif %}
+          {% if current_state.active_conflicts %}
+          <div>
+            <h4 class="text-sm text-muted mb-sm">Active Conflicts</h4>
+            {% for conflict in current_state.active_conflicts %}
+            <div class="py-sm" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+              {% if conflict is mapping %}
+              <h4 class="text-sm" style="color: var(--ember-400);">{{ conflict.name }}</h4>
+              <p class="font-serif text-xs mt-xs" style="color: var(--parchment-300);">{{ conflict.description }}</p>
+              {% if conflict.stakes %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Stakes:</span> {{ conflict.stakes }}</p>{% endif %}
+              {% if conflict.parties %}
+              <div class="flex gap-sm flex-wrap mt-xs">
+                {% for party in conflict.parties %}
+                <span class="badge badge-default" style="font-size: 0.6rem;">{{ party }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
+              {% else %}
+              <p class="text-sm" style="color: var(--parchment-100);">{{ conflict }}</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Protagonist -->
+      {% if protagonist %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Protagonist</h3>
+        </div>
+        <div class="card-body">
+          {% if protagonist is mapping %}
+          <div class="flex items-center gap-md mb-md">
+            <h4 class="font-display" style="color: var(--parchment-100);">{{ protagonist.name }}</h4>
+            {% if protagonist.age %}<span class="badge badge-default">Age {{ protagonist.age }}</span>{% endif %}
+          </div>
+          {% if protagonist.background %}
+          <p class="font-serif text-sm mb-md" style="color: var(--parchment-300); line-height: 1.6;">{{ protagonist.background }}</p>
+          {% endif %}
+          {% if protagonist.personality %}
+            {% set p = protagonist.personality %}
+            {% if p is mapping %}
+            <div class="mb-md">
+              <h4 class="text-sm text-muted mb-sm">Personality</h4>
+              {% if p.core_traits %}
+              <div class="flex gap-sm flex-wrap mb-xs">
+                {% for trait in p.core_traits %}<span class="badge badge-arcane">{{ trait }}</span>{% endfor %}
+              </div>
+              {% endif %}
+              {% if p.flaws %}
+              <p class="text-xs mt-xs"><span class="text-muted">Flaws:</span> <span style="color: var(--ember-400);">{{ p.flaws | join(', ') }}</span></p>
+              {% endif %}
+              {% if p.fears %}
+              <p class="text-xs mt-xs"><span class="text-muted">Fears:</span> <span style="color: var(--parchment-300);">{{ p.fears | join(', ') }}</span></p>
+              {% endif %}
+              {% if p.desires %}
+              <p class="text-xs mt-xs"><span class="text-muted">Desires:</span> <span style="color: var(--parchment-300);">{{ p.desires | join(', ') }}</span></p>
+              {% endif %}
+            </div>
+            {% else %}
+            <p class="font-serif text-sm mb-md" style="color: var(--parchment-300);">{{ p }}</p>
+            {% endif %}
+          {% endif %}
+          {% if protagonist.starting_power %}
+            {% set sp = protagonist.starting_power %}
+            {% if sp is mapping %}
+            <div class="mb-md">
+              <h4 class="text-sm text-muted mb-sm">Starting Power</h4>
+              {% if sp.current_rank %}<span class="badge badge-ember">{{ sp.current_rank }}</span>{% endif %}
+              {% if sp.discipline %}<span class="badge badge-default ml-xs">{{ sp.discipline }}</span>{% endif %}
+              {% if sp.latent_abilities %}<p class="text-xs text-muted mt-xs">{{ sp.latent_abilities }}</p>{% endif %}
+            </div>
+            {% endif %}
+          {% endif %}
+          {% if protagonist.motivation %}
+            {% set m = protagonist.motivation %}
+            {% if m is mapping %}
+            <div class="mb-md">
+              <h4 class="text-sm text-muted mb-sm">Motivation</h4>
+              {% if m.surface_motivation %}<p class="text-xs" style="color: var(--parchment-200);"><span class="text-muted">Surface:</span> {{ m.surface_motivation }}</p>{% endif %}
+              {% if m.deep_motivation %}<p class="text-xs mt-xs" style="color: var(--parchment-200);"><span class="text-muted">Deep:</span> {{ m.deep_motivation }}</p>{% endif %}
+            </div>
+            {% else %}
+            <p class="font-serif text-sm mb-md" style="color: var(--parchment-300);">{{ m }}</p>
+            {% endif %}
+          {% endif %}
+          {% if protagonist.disadvantage %}
+          <p class="text-xs mt-sm"><span class="text-muted">Disadvantage:</span> <span style="color: var(--parchment-300);">{{ protagonist.disadvantage }}</span></p>
+          {% endif %}
+          {% if protagonist.unusual_trait %}
+          <p class="text-xs mt-xs"><span class="text-muted">Unusual trait:</span> <span style="color: var(--parchment-300);">{{ protagonist.unusual_trait }}</span></p>
+          {% endif %}
+          {% else %}
+          {{ render_value(protagonist) }}
+          {% endif %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Antagonists -->
+      {% if antagonists %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Antagonists</h3>
+        </div>
+        <div class="card-body">
+          {% set antag_list = antagonists.antagonists if antagonists is mapping and antagonists.antagonists else antagonists %}
+          {% if antag_list is iterable and antag_list is not string and antag_list is not mapping %}
+          {% for antag in antag_list %}
+          <div class="py-md" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            {% if antag is mapping %}
+            <div class="flex items-center gap-sm mb-xs">
+              <h4 class="text-sm" style="color: var(--ember-400);">{{ antag.name }}</h4>
+              {% if antag.role %}<span class="badge badge-default" style="font-size: 0.65rem;">{{ antag.role }}</span>{% endif %}
+            </div>
+            {% if antag.motivation %}<p class="font-serif text-sm" style="color: var(--parchment-300); line-height: 1.6;">{{ antag.motivation }}</p>{% endif %}
+            {% if antag.power_level %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Power:</span> {{ antag.power_level }}</p>{% endif %}
+            {% if antag.relationship_to_protagonist %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Relation to protagonist:</span> {{ antag.relationship_to_protagonist }}</p>{% endif %}
+            {% if antag.threat_type %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Threat:</span> {{ antag.threat_type }}</p>{% endif %}
+            {% else %}
+            <p class="text-sm" style="color: var(--parchment-100);">{{ antag }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% else %}
+          {{ render_value(antag_list) }}
+          {% endif %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Supporting Cast -->
+      {% if supporting_cast %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Supporting Cast</h3>
+        </div>
+        <div class="card-body">
+          {% set cast_list = supporting_cast.characters if supporting_cast is mapping and supporting_cast.characters else supporting_cast %}
+          {% if cast_list is iterable and cast_list is not string and cast_list is not mapping %}
+          {% for char in cast_list %}
+          <div class="py-md" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            {% if char is mapping %}
+            <div class="flex items-center gap-sm mb-xs">
+              <h4 class="text-sm" style="color: var(--parchment-100);">{{ char.name }}</h4>
+              {% if char.role %}<span class="badge badge-default" style="font-size: 0.65rem;">{{ char.role }}</span>{% endif %}
+            </div>
+            {% if char.connection_to_protagonist %}<p class="font-serif text-sm" style="color: var(--parchment-300); line-height: 1.6;">{{ char.connection_to_protagonist }}</p>{% endif %}
+            {% if char.narrative_purpose %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Purpose:</span> {{ char.narrative_purpose }}</p>{% endif %}
+            {% if char.personality_sketch %}<p class="text-xs text-muted mt-xs"><span style="color: var(--ink-200);">Personality:</span> {{ char.personality_sketch }}</p>{% endif %}
+            {% else %}
+            <p class="text-sm" style="color: var(--parchment-100);">{{ char }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% else %}
+          {{ render_value(cast_list) }}
+          {% endif %}
+        </div>
+      </section>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar (1/3) -->
+    <div>
+      <!-- Power System Summary -->
+      {% if power_system %}
+      <section class="card mb-lg">
+        <div class="card-header">
+          <h4 class="card-title" style="color: var(--ember-400);">Power System</h4>
+        </div>
+        <div class="card-body">
+          {% if power_system is mapping %}
+          <h4 class="font-display mb-sm" style="color: var(--parchment-100);">{{ power_system.system_name }}</h4>
+          <p class="font-serif text-sm mb-md" style="color: var(--parchment-300);">{{ power_system.core_mechanic[:200] }}{% if power_system.core_mechanic | length > 200 %}&hellip;{% endif %}</p>
+          {% else %}
+          <p class="font-serif text-sm mb-md" style="color: var(--parchment-300);">{{ power_system }}</p>
+          {% endif %}
+          <a href="/novels/{{ novel.id }}/world/power-system" class="btn btn-ghost btn-sm w-full">View Full System</a>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Factions -->
+      {% if factions %}
+      <section class="card mb-lg">
+        <div class="card-header">
+          <h4 class="card-title">Factions</h4>
+        </div>
+        <div class="card-body">
+          {% for faction in factions %}
+          <div class="py-sm" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            {% if faction is mapping %}
+            <h4 class="text-sm" style="color: var(--parchment-100);">{{ faction.name }}</h4>
+            {% if faction.description %}
+            <p class="text-xs text-muted mt-xs">{{ faction.description[:100] }}{% if faction.description | length > 100 %}&hellip;{% endif %}</p>
+            {% endif %}
+            {% if faction.goals %}
+            <p class="text-xs mt-xs" style="color: var(--arcane-400);">{{ faction.goals[:80] }}{% if faction.goals | length > 80 %}&hellip;{% endif %}</p>
+            {% endif %}
+            {% else %}
+            <p class="text-sm" style="color: var(--parchment-100);">{{ faction }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Key Historical Figures -->
+      {% if history_figures %}
+      <section class="card mb-lg">
+        <div class="card-header">
+          <h4 class="card-title">Key Figures</h4>
+        </div>
+        <div class="card-body">
+          {% for figure in history_figures %}
+          <div class="py-sm" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            {% if figure is mapping %}
+            <h4 class="text-sm" style="color: var(--parchment-100);">{{ figure.name }}</h4>
+            {% if figure.era %}
+            <span class="badge badge-default" style="font-size: 0.6rem;">{{ figure.era }}</span>
+            {% endif %}
+            {% if figure.legacy %}
+            <p class="text-xs text-muted mt-xs">{{ figure.legacy[:100] }}{% if figure.legacy | length > 100 %}&hellip;{% endif %}</p>
+            {% endif %}
+            {% else %}
+            <p class="text-sm" style="color: var(--parchment-100);">{{ figure }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Quick Stats -->
+      <section class="card">
+        <div class="card-header">
+          <h4 class="card-title">World Stats</h4>
+        </div>
+        <div class="card-body">
+          <ul style="list-style: none;">
+            <li class="flex justify-between py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-muted text-sm">Regions</span>
+              <span class="text-sm">{{ regions | length if regions else 0 }}</span>
+            </li>
+            <li class="flex justify-between py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-muted text-sm">Factions</span>
+              <span class="text-sm">{{ factions | length if factions else 0 }}</span>
+            </li>
+            <li class="flex justify-between py-sm" style="border-bottom: 1px solid var(--border-subtle);">
+              <span class="text-muted text-sm">Historical Events</span>
+              <span class="text-sm">{{ history_events | length if history_events else 0 }}</span>
+            </li>
+            <li class="flex justify-between py-sm">
+              <span class="text-muted text-sm">Power System</span>
+              <span class="text-sm">{{ 'Yes' if power_system else 'None' }}</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </div>
+  {% else %}
+  <!-- Empty State -->
+  <div class="card" style="text-align: center; padding: var(--space-3xl) var(--space-xl);">
+    <div style="font-size: 3rem; margin-bottom: var(--space-lg); opacity: 0.5;">&#127758;</div>
+    <h2 class="font-display mb-md" style="color: var(--parchment-200);">World Not Yet Hallucinated</h2>
+    <p class="font-serif text-muted mb-xl" style="max-width: 28rem; margin: 0 auto var(--space-xl);">
+      The AI hasn't dreamed this world up yet. Head to the novel page to start the hallucination pipeline.
+    </p>
+    <a href="/novels/{{ novel.id }}" class="btn btn-secondary btn-sm">Return to Novel</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

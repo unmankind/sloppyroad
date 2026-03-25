@@ -1,0 +1,78 @@
+{% extends "author_base.html" %}
+
+{% block title %}Chekhov Guns — {{ selected_novel.title }}{% endblock %}
+
+{% block author_content %}
+<div class="animate-fade-in">
+  <div class="flex justify-between items-center mb-xl">
+    <h2 class="font-display" style="color: var(--parchment-100);">Chekhov's Guns</h2>
+    <span class="text-muted text-sm">{{ guns | length }} element{{ 's' if guns | length != 1 else '' }}</span>
+  </div>
+
+  {% if guns %}
+  <div style="display: flex; flex-direction: column; gap: var(--space-lg);">
+    {% for gun in guns %}
+    <div class="card" style="{% if gun.status == 'fired' %}border-color: var(--arcane-700);{% elif gun.status == 'overdue' %}border-color: var(--ember-600);{% endif %}">
+      <div style="padding: var(--space-lg);">
+        <div class="flex justify-between items-start mb-md">
+          <div>
+            <h3 class="font-display mb-xs" style="color: var(--parchment-100); font-size: 1.1rem;">
+              {{ gun.description[:120] }}{{ '...' if gun.description | length > 120 else '' }}
+            </h3>
+            <div class="flex gap-sm items-center flex-wrap">
+              <span class="badge {% if gun.status == 'planted' %}badge-default{% elif gun.status == 'growing' %}badge-arcane{% elif gun.status == 'fired' %}badge-success{% elif gun.status == 'overdue' %}badge-danger{% else %}badge-default{% endif %}">
+                {{ gun.status | title }}
+              </span>
+              {% if gun.planted_chapter %}
+              <span class="text-xs text-muted">Planted Ch. {{ gun.planted_chapter }}</span>
+              {% endif %}
+              {% if gun.fired_chapter %}
+              <span class="text-xs text-muted">Fired Ch. {{ gun.fired_chapter }}</span>
+              {% endif %}
+            </div>
+          </div>
+          <div style="text-align: right; flex-shrink: 0;">
+            <div class="text-sm" style="color: var(--ember-400);">
+              Pressure: {{ '%.1f' | format(gun.pressure_score) }}
+            </div>
+            {% if gun.expected_payoff_chapter %}
+            <div class="text-xs text-muted mt-xs">
+              Expected payoff: Ch. {{ gun.expected_payoff_chapter }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if gun.gun_type %}
+        <div class="text-xs text-muted mb-sm">
+          Type: {{ gun.gun_type | replace('_', ' ') | title }}
+          {% if gun.entity_type and gun.entity_id %}
+          &middot; {{ gun.entity_type | title }} #{{ gun.entity_id }}
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {# Pressure bar #}
+        {% set pressure_pct = [gun.pressure_score * 10, 100] | min %}
+        <div style="background: var(--ink-800); border-radius: var(--radius-sm); height: 4px; overflow: hidden;">
+          <div style="width: {{ pressure_pct }}%; height: 100%;
+                      background: {% if gun.pressure_score >= 8 %}var(--ember-500){% elif gun.pressure_score >= 5 %}var(--arcane-500){% else %}var(--parchment-600){% endif %};
+                      transition: width 0.3s ease;"></div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card" style="text-align: center; padding: var(--space-3xl) var(--space-xl);">
+    <span style="font-size: 3rem; display: block; margin-bottom: var(--space-lg); opacity: 0.5;">&#127915;</span>
+    <p class="font-serif text-lg mb-md" style="color: var(--parchment-300);">No Chekhov's guns detected yet&hellip;</p>
+    <p class="text-sm text-muted" style="max-width: 28rem; margin: 0 auto;">
+      As chapters are generated, the AI will plant narrative elements &mdash;
+      objects, promises, prophecies &mdash; that demand future payoff.
+      They'll appear here with pressure scores that rise over time.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

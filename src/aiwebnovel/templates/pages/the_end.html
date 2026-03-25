@@ -1,0 +1,65 @@
+{% extends "reader_base.html" %}
+
+{% block title %}THE END - {{ novel.title }}{% endblock %}
+
+{% block reader_content %}
+<div class="the-end">
+  <!-- Decorative top -->
+  <div class="the-end-divider mb-xl"></div>
+
+  <!-- THE END -->
+  <h1 class="the-end-title">THE END</h1>
+  <p class="font-serif text-sm mt-sm" style="color: var(--parchment-400); font-style: italic;">The machine has spoken.</p>
+
+  <div class="the-end-divider"></div>
+
+  <!-- Novel Title -->
+  <p class="font-display text-xl mt-xl" style="color: var(--parchment-200); letter-spacing: 0.1em;">
+    {{ novel.title }}
+  </p>
+
+  <!-- Completion Summary -->
+  {% if completion_summary %}
+  <div class="mt-2xl reading-container">
+    <p class="font-serif text-lg" style="color: var(--parchment-300); line-height: 1.8;">
+      {{ completion_summary }}
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- Stats -->
+  <div class="the-end-stats">
+    <div class="the-end-stat">
+      <div class="the-end-stat-value">{{ novel.chapter_count | default(0) }}</div>
+      <div class="the-end-stat-label">Chapters</div>
+    </div>
+    <div class="the-end-stat">
+      <div class="the-end-stat-value">{{ '{:,}'.format(novel.word_count) if novel.word_count else '0' }}</div>
+      <div class="the-end-stat-label">Words</div>
+    </div>
+    <div class="the-end-stat">
+      <div class="the-end-stat-value">{{ novel.reader_count | default(0) }}</div>
+      <div class="the-end-stat-label">Readers</div>
+    </div>
+  </div>
+
+  <!-- Rating Widget -->
+  <div class="mt-2xl">
+    <p class="text-muted text-sm mb-md">How would you rate this slop? Be honest. The AI can't cry.</p>
+    {% set rating_value = user_rating or 0 %}
+    {% set novel_id = novel.id %}
+    {% set avg_rating = novel.avg_rating or 0 %}
+    {% set rating_count = novel.rating_count or 0 %}
+    {% include "partials/star_rating.html" %}
+  </div>
+
+  <!-- Actions -->
+  <div class="flex gap-md justify-center mt-2xl">
+    <a href="/novels/{{ novel.id }}/chapters/1" class="btn btn-secondary btn-lg">Read Again</a>
+    <a href="/browse" class="btn btn-primary btn-lg">Browse More Slop</a>
+  </div>
+
+  <!-- Decorative bottom -->
+  <div class="the-end-divider mt-2xl"></div>
+</div>
+{% endblock %}

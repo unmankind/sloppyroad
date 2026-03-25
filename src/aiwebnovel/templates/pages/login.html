@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<div class="container py-3xl" style="max-width: 28rem;">
+  <div class="text-center mb-2xl">
+    <h1 id="auth-heading" style="font-size: 2rem;">Welcome Back to the Slop Factory</h1>
+    <p id="auth-subheading" class="text-muted font-serif">Your conveyor belt awaits.</p>
+  </div>
+
+  <!-- Tab Toggle -->
+  <div class="tabs mb-xl">
+    <button class="tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+    <button class="tab" id="tab-register" onclick="switchAuthTab('register')">Register</button>
+  </div>
+
+  <!-- Login Form -->
+  <form id="form-login" action="/auth/login-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if error %}
+    <div class="card mb-md" style="border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05);">
+      <p class="text-sm" style="color: #f87171;">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <div class="form-group">
+      <label class="form-label" for="login-email">Email</label>
+      <input type="email" id="login-email" name="email" class="form-input"
+             placeholder="your@email.com" required autocomplete="email">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="login-password">Password</label>
+      <input type="password" id="login-password" name="password" class="form-input"
+             placeholder="Your password" required autocomplete="current-password">
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In</button>
+  </form>
+
+  <!-- Register Form -->
+  <form id="form-register" class="hidden" action="/auth/register-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="form-group">
+      <label class="form-label" for="reg-email">Email</label>
+      <input type="email" id="reg-email" name="email" class="form-input"
+             placeholder="your@email.com" required autocomplete="email">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="reg-pen-name">Pen Name</label>
+      <input type="text" id="reg-pen-name" name="pen_name" class="form-input"
+             placeholder="Your author name" required autocomplete="nickname">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="reg-password">Password</label>
+      <input type="password" id="reg-password" name="password" class="form-input"
+             placeholder="Choose a strong password" required autocomplete="new-password"
+             minlength="8">
+      <p class="form-hint">At least 8 characters.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="reg-confirm">Confirm Password</label>
+      <input type="password" id="reg-confirm" name="password_confirm" class="form-input"
+             placeholder="Confirm your password" required autocomplete="new-password">
+    </div>
+
+    <div class="form-group">
+      <label class="filter-option" style="font-size: 0.85rem;">
+        <input type="checkbox" name="tos_accepted" required>
+        <span class="filter-check"></span>
+        I agree to the <a href="/terms" target="_blank" style="color: var(--ember-400);">Terms of Service</a> and <a href="/privacy" target="_blank" style="color: var(--ember-400);">Privacy Policy</a>
+      </label>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block btn-lg">Create Account</button>
+  </form>
+
+  <!-- Divider -->
+  <div class="flex items-center gap-md my-xl">
+    <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+    <span class="text-xs text-muted">OR</span>
+    <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+  </div>
+
+  <!-- OAuth Buttons (greyed out) -->
+  <div class="flex flex-col gap-sm">
+    <button class="btn btn-secondary btn-block" disabled style="opacity: 0.4;">
+      Sign in with Google &mdash; The AI said "soon"
+    </button>
+    <button class="btn btn-secondary btn-block" disabled style="opacity: 0.4;">
+      Sign in with GitHub &mdash; The AI said "soon"
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function switchAuthTab(tab) {
+    var loginForm = document.getElementById('form-login');
+    var registerForm = document.getElementById('form-register');
+    var tabLogin = document.getElementById('tab-login');
+    var tabRegister = document.getElementById('tab-register');
+    var heading = document.getElementById('auth-heading');
+    var subheading = document.getElementById('auth-subheading');
+
+    if (tab === 'login') {
+      loginForm.classList.remove('hidden');
+      registerForm.classList.add('hidden');
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      heading.textContent = 'Welcome Back to the Slop Factory';
+      subheading.textContent = 'Your conveyor belt awaits.';
+    } else {
+      loginForm.classList.add('hidden');
+      registerForm.classList.remove('hidden');
+      tabLogin.classList.remove('active');
+      tabRegister.classList.add('active');
+      heading.textContent = 'Join the Assembly Line';
+      subheading.textContent = 'Create your account and start generating.';
+    }
+  }
+</script>
+{{ super() }}
+{% endblock %}

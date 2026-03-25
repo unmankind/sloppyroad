@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{# Author base — dashboard style, well-lit workshop aesthetic #}
+
+{% block content %}
+<div class="author-mode">
+  <!-- Usage Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat">
+      <span class="stat-label">Novels:</span>
+      <span class="stat-value">{{ author_stats.novel_count if author_stats else '0' }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Chapters:</span>
+      <span class="stat-value">{{ author_stats.chapter_count if author_stats else '0' }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Words:</span>
+      <span class="stat-value">{{ '{:,}'.format(author_stats.word_count) if author_stats and author_stats.word_count else '0' }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Budget:</span>
+      <span class="stat-value">${{ '%.2f' | format(author_stats.budget_remaining) if author_stats and author_stats.budget_remaining else '0.00' }}</span>
+    </div>
+  </div>
+
+  <div class="page-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <!-- Novel Selector -->
+      {% if novels %}
+      <div class="p-md px-lg mb-md">
+        <select class="form-select" id="novel-selector"
+                onchange="if(this.value) window.location.href='/novels/'+this.value+'/settings'">
+          <option value="">Select a novel...</option>
+          {% for novel in novels %}
+          <option value="{{ novel.id }}" {% if selected_novel and selected_novel.id == novel.id %}selected{% endif %}>
+            {{ novel.title }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li class="sidebar-section">Overview</li>
+          <li><a href="/dashboard" class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+          <li><a href="/dashboard/usage" class="sidebar-link {% if active_page == 'usage' %}active{% endif %}">Usage &amp; Costs</a></li>
+
+          {% if selected_novel %}
+          <li class="sidebar-section">{{ selected_novel.title }}</li>
+          <li><a href="/novels/{{ selected_novel.id }}" class="sidebar-link {% if active_page == 'novel_detail' %}active{% endif %}">Overview</a></li>
+          <li><a href="/novels/{{ selected_novel.id }}/arcs" class="sidebar-link {% if active_page == 'arcs' %}active{% endif %}">Arc Plans</a></li>
+          <li><a href="/novels/{{ selected_novel.id }}/characters" class="sidebar-link {% if active_page == 'characters' %}active{% endif %}">Characters</a></li>
+          <li><a href="/novels/{{ selected_novel.id }}/world" class="sidebar-link {% if active_page == 'world' %}active{% endif %}">World</a></li>
+          <li><a href="/novels/{{ selected_novel.id }}/chekhov" class="sidebar-link {% if active_page == 'chekhov' %}active{% endif %}">Chekhov Guns</a></li>
+          <li><a href="/novels/{{ selected_novel.id }}/gallery" class="sidebar-link {% if active_page == 'gallery' %}active{% endif %}">Gallery</a></li>
+          <li><a href="/novels/{{ selected_novel.id }}/settings" class="sidebar-link {% if active_page == 'novel_settings' %}active{% endif %}">Settings</a></li>
+          {% endif %}
+
+          <li class="sidebar-section">Account</li>
+          <li><a href="/dashboard/settings" class="sidebar-link {% if active_page == 'settings' %}active{% endif %}">Settings</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="page-content">
+      <!-- Quick Actions -->
+      {% if selected_novel %}
+      <div class="quick-actions mb-xl">
+        <form method="post" action="/novels/{{ selected_novel.id }}/generate" style="display: inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-primary btn-sm">Generate Chapter</button>
+        </form>
+        <a href="/novels/{{ selected_novel.id }}/arcs" class="btn btn-secondary btn-sm">Plan Arc</a>
+        <a href="/novels/{{ selected_novel.id }}/world" class="btn btn-ghost btn-sm">View World</a>
+      </div>
+      {% endif %}
+
+      {% block author_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

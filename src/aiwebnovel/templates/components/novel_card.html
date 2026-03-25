@@ -1,0 +1,93 @@
+{# Browse page novel card — cover, title, author, genre tags, stats, status #}
+<a href="/novels/{{ novel.id }}" class="novel-card" hx-boost="true">
+  {# Cover image or gradient placeholder #}
+  <div class="novel-card-cover">
+    {% if novel.cover_url %}
+    <img src="{{ novel.cover_url }}" alt="" loading="lazy">
+    <div class="novel-card-cover-title" aria-hidden="true">{{ novel.title }}</div>
+    {% elif novel.cover_generating %}
+    <div class="novel-card-cover-placeholder cover-default">
+      <div class="cover-generating-shimmer"></div>
+      <span class="cover-icon">&#9997;</span>
+      <span class="cover-generating-text">Cover generating...</span>
+    </div>
+    {% else %}
+    {# Genre-based gradient placeholder #}
+    {% set genre_lower = (novel.genre or '') | lower %}
+    {% if 'cultivation' in genre_lower %}
+    <div class="novel-card-cover-placeholder cover-cultivation">
+    {% elif 'litrpg' in genre_lower %}
+    <div class="novel-card-cover-placeholder cover-litrpg">
+    {% elif 'dark' in genre_lower %}
+    <div class="novel-card-cover-placeholder cover-dark">
+    {% elif 'sci' in genre_lower %}
+    <div class="novel-card-cover-placeholder cover-scifi">
+    {% else %}
+    <div class="novel-card-cover-placeholder cover-default">
+    {% endif %}
+      <span class="cover-icon">&#9733;</span>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Card content #}
+  <div class="novel-card-content">
+    {# Title + status badge #}
+    <div class="novel-card-header">
+      <h4 class="novel-card-title">{{ novel.title }}</h4>
+      <span class="badge {{ novel.status | status_badge_class }}">{{ novel.status | format_status }}</span>
+    </div>
+
+    {# Rating: only show if at least 1 rating exists #}
+    {% set rating_count = novel.rating_count | default(0) %}
+    {% if rating_count > 0 %}
+    <div class="novel-card-rating" style="white-space: nowrap; margin-top: 0.25em;">
+      {% set avg = novel.avg_rating or 0 %}
+      {% set rounded = avg | round | int %}
+      {% if avg < 0 %}
+        {% for i in range(-5, 0) %}
+        <span class="robot {% if i >= rounded %}filled{% endif %}" style="font-size: 0.8em;">&#129302;</span>
+        {% endfor %}
+      {% else %}
+        {% for i in range(1, 6) %}
+        <span class="star {% if i <= rounded %}filled{% endif %}" style="font-size: 0.8em;">&#9733;</span>
+        {% endfor %}
+      {% endif %}
+      <span class="text-muted" style="font-size: 0.7em; margin-left: 0.25em;">({{ rating_count }})</span>
+    </div>
+    {% endif %}
+
+    {# Author #}
+    {% if novel.author_name %}
+    <p class="novel-card-author">by {{ novel.author_name }}</p>
+    {% endif %}
+
+    {# Description #}
+    {% if novel.description %}
+    <p class="novel-card-desc">
+      {{ novel.description[:120] + '...' if novel.description | length > 120 else novel.description }}
+    </p>
+    {% endif %}
+
+    {# Tags #}
+    {% if novel.tags %}
+    <div class="novel-card-tags">
+      {% for tag in novel.tags[:3] %}
+      <span class="tag-pill">{{ tag | format_genre }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Stats row #}
+    <div class="novel-card-stats">
+      {% set ch_count = novel.chapter_count | default(0) %}
+      <span title="Chapters">{{ ch_count }} chapter{{ ch_count | pluralize }}</span>
+      {% if novel.word_count %}
+      <span title="Reading time">{{ novel.word_count | reading_time }}</span>
+      {% endif %}
+      {% if novel.updated_at %}
+      <span class="novel-card-updated" title="{{ novel.updated_at }}">{{ novel.updated_at | timeago }}</span>
+      {% endif %}
+    </div>
+  </div>
+</a>

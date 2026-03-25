@@ -1,0 +1,216 @@
+services:
+  # ── FastAPI Application ─────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aiwn-app
+    restart: unless-stopped
+    environment:
+      - AIWN_DATABASE_URL=postgresql+asyncpg://aiwn:${AIWN_DB_PASSWORD:-aiwn_dev}@db:5432/aiwn
+      - AIWN_REDIS_URL=redis://:${AIWN_REDIS_PASSWORD:-}@redis:6379
+      - AIWN_JWT_SECRET_KEY=${AIWN_JWT_SECRET_KEY:?JWT secret key is required}
+      - AIWN_LITELLM_API_KEY=${AIWN_LITELLM_API_KEY:-}
+      - ANTHROPIC_API_KEY=${AIWN_LITELLM_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AIWN_IMAGE_ENABLED=${AIWN_IMAGE_ENABLED:-false}
+      - AIWN_IMAGE_PROVIDER=${AIWN_IMAGE_PROVIDER:-replicate}
+      - AIWN_REPLICATE_API_TOKEN=${AIWN_REPLICATE_API_TOKEN:-}
+      - AIWN_STRIPE_API_KEY=${AIWN_STRIPE_API_KEY:-}
+      - AIWN_STRIPE_WEBHOOK_SECRET=${AIWN_STRIPE_WEBHOOK_SECRET:-}
+      - AIWN_ENCRYPTION_KEY=${AIWN_ENCRYPTION_KEY:-}
+      - AIWN_RESEND_API_KEY=${AIWN_RESEND_API_KEY:-}
+      - AIWN_EMAIL_VERIFICATION_REQUIRED=${AIWN_EMAIL_VERIFICATION_REQUIRED:-false}
+      - AIWN_SENTRY_DSN=${AIWN_SENTRY_DSN:-}
+      - AIWN_DEBUG=false
+      - AIWN_LOG_LEVEL=INFO
+      - AIWN_RUN_MIGRATIONS=1
+    volumes:
+      - app-assets:/app/assets
+      - app-vector:/app/vector_store
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["gunicorn", "aiwebnovel.main:create_app()",
+              "--bind", "0.0.0.0:8003",
+              "--worker-class", "uvicorn.workers.UvicornWorker",
+              "--workers", "4",
+              "--timeout", "300"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - aiwn-net
+
+  # ── PostgreSQL Database ─────────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: aiwn-db
+    restart: unless-stopped
+    command: ["postgres", "-c", "max_connections=150", "-c", "log_min_duration_statement=1000"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    mem_limit: 1536m
+    environment:
+      - POSTGRES_DB=aiwn
+      - POSTGRES_USER=aiwn
+      - POSTGRES_PASSWORD=${AIWN_DB_PASSWORD:-aiwn_dev}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/init-pgvector.sql:/docker-entrypoint-initdb.d/01-pgvector.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiwn"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aiwn-net
+
+  # ── arq Background Worker ──────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aiwn-worker
+    restart: unless-stopped
+    command: ["python", "-m", "arq", "aiwebnovel.worker.queue.WorkerSettings"]
+    environment:
+      - AIWN_DATABASE_URL=postgresql+asyncpg://aiwn:${AIWN_DB_PASSWORD:-aiwn_dev}@db:5432/aiwn
+      - AIWN_REDIS_URL=redis://:${AIWN_REDIS_PASSWORD:-}@redis:6379
+      - AIWN_JWT_SECRET_KEY=${AIWN_JWT_SECRET_KEY:?JWT secret key is required}
+      - AIWN_LITELLM_API_KEY=${AIWN_LITELLM_API_KEY:-}
+      - ANTHROPIC_API_KEY=${AIWN_LITELLM_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AIWN_IMAGE_ENABLED=${AIWN_IMAGE_ENABLED:-false}
+      - AIWN_IMAGE_PROVIDER=${AIWN_IMAGE_PROVIDER:-replicate}
+      - AIWN_REPLICATE_API_TOKEN=${AIWN_REPLICATE_API_TOKEN:-}
+      - AIWN_ENCRYPTION_KEY=${AIWN_ENCRYPTION_KEY:-}
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    mem_limit: 512m
+    volumes:
+      - app-assets:/app/assets
+      - app-vector:/app/vector_store
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,os; import redis; r=redis.from_url(os.environ.get('AIWN_REDIS_URL','redis://redis:6379')); sys.exit(0 if r.exists('arq:health-check') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - aiwn-net
+
+  # ── arq Image Worker ───────────────────────────────────────────────
+  worker-images:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aiwn-worker-images
+    restart: unless-stopped
+    command: ["python", "-m", "arq", "aiwebnovel.worker.queue.ImageWorkerSettings"]
+    environment:
+      - AIWN_DATABASE_URL=postgresql+asyncpg://aiwn:${AIWN_DB_PASSWORD:-aiwn_dev}@db:5432/aiwn
+      - AIWN_REDIS_URL=redis://:${AIWN_REDIS_PASSWORD:-}@redis:6379
+      - AIWN_JWT_SECRET_KEY=${AIWN_JWT_SECRET_KEY:?JWT secret key is required}
+      - AIWN_LITELLM_API_KEY=${AIWN_LITELLM_API_KEY:-}
+      - ANTHROPIC_API_KEY=${AIWN_LITELLM_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AIWN_IMAGE_ENABLED=${AIWN_IMAGE_ENABLED:-false}
+      - AIWN_IMAGE_PROVIDER=${AIWN_IMAGE_PROVIDER:-replicate}
+      - AIWN_REPLICATE_API_TOKEN=${AIWN_REPLICATE_API_TOKEN:-}
+      - AIWN_ENCRYPTION_KEY=${AIWN_ENCRYPTION_KEY:-}
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    mem_limit: 512m
+    volumes:
+      - app-assets:/app/assets
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,os; import redis; r=redis.from_url(os.environ.get('AIWN_REDIS_URL','redis://redis:6379')); sys.exit(0 if r.exists('arq:health-check:images') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - aiwn-net
+
+  # ── Redis ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: aiwn-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "yes",
+              "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru",
+              "--requirepass", "${AIWN_REDIS_PASSWORD:-}",
+              "--loglevel", "warning"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    mem_limit: 300m
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - aiwn-net
+
+  # ── Caddy Reverse Proxy ────────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: aiwn-caddy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/sloppyroad/certs:/certs:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - aiwn-net
+
+volumes:
+  db-data:
+  redis-data:
+  app-assets:
+  app-vector:
+  caddy-data:
+  caddy-config:
+
+networks:
+  aiwn-net:
+    driver: bridge

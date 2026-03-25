@@ -1,0 +1,138 @@
+{% extends "author_base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block author_content %}
+<h2 class="mb-xl">Your Slop</h2>
+
+<!-- Novel Cards -->
+{% if novels %}
+<div class="dashboard-novels mb-2xl">
+  {% for novel in novels %}
+  <div class="card dashboard-novel-card">
+    <div class="dashboard-novel-row">
+      {# Cover thumbnail #}
+      {% if novel.cover_url %}
+      <a href="/novels/{{ novel.id }}" class="dashboard-novel-cover">
+        <img src="{{ novel.cover_url }}" alt="" loading="lazy">
+      </a>
+      {% else %}
+      <a href="/novels/{{ novel.id }}" class="dashboard-novel-cover dashboard-novel-cover-placeholder">
+        <span>&#9733;</span>
+      </a>
+      {% endif %}
+
+      {# Novel info #}
+      <div class="dashboard-novel-info">
+        <div class="card-header" style="margin-bottom: 0.25rem;">
+          <a href="/novels/{{ novel.id }}" class="card-title" style="text-decoration: none; font-size: 1rem;">{{ novel.title }}</a>
+          <span class="badge {{ novel.status | status_badge_class }}">
+            {{ novel.status | format_status }}
+          </span>
+        </div>
+        <div class="novel-card-meta" style="margin-bottom: 0.5rem;">
+          {% set ch_count = novel.chapter_count | default(0) %}
+          <span>{{ ch_count }} ch</span>
+          <span>{{ '{:,}'.format(novel.word_count) if novel.word_count else '0' }} words</span>
+          {% if novel.updated_at %}
+          <span>{{ novel.updated_at | timeago }}</span>
+          {% endif %}
+          {% if novel.failed_image_count %}
+          <a href="/novels/{{ novel.id }}/gallery" style="color: var(--ember-400); text-decoration: none;">
+            &#9888; {{ novel.failed_image_count }} failed
+          </a>
+          {% endif %}
+        </div>
+        <div class="dashboard-novel-actions">
+          <form method="post" action="/novels/{{ novel.id }}/generate" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-primary btn-sm">Generate</button>
+          </form>
+          <a href="/novels/{{ novel.id }}/arcs" class="btn btn-secondary btn-sm">Arcs</a>
+          <a href="/novels/{{ novel.id }}/settings" class="btn btn-ghost btn-sm">Settings</a>
+          <button class="btn btn-ghost btn-sm"
+                  style="color: var(--ink-400); font-size: 0.7rem;"
+                  hx-post="/novels/{{ novel.id }}/delete"
+                  hx-confirm="Permanently delete &quot;{{ novel.title }}&quot; and all its chapters, world data, and settings? This cannot be undone."
+                  hx-target="closest .dashboard-novel-card"
+                  hx-swap="outerHTML swap:200ms">
+            &#x2715;
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card text-center py-3xl mb-2xl">
+  <p class="text-muted font-serif text-lg mb-lg">Your slop queue is empty. The machines are idle. This is unacceptable.</p>
+  <a href="/novels/new" class="btn btn-primary btn-lg">Generate Your First Novel</a>
+</div>
+{% endif %}
+
+<!-- Tier & Create -->
+<div class="mb-2xl flex items-center gap-md">
+  <a href="/novels/new" class="btn btn-secondary">+ New Novel</a>
+  {% include "components/tier_badge.html" %}
+  {% if plan_type == 'free' %}
+  <span class="text-xs text-muted">{{ author_stats.novel_count }}/2 worlds</span>
+  {% endif %}
+</div>
+
+<!-- Cost Summary -->
+{% if cost_summary %}
+<section class="card mb-xl">
+  <div class="card-header">
+    <h3 class="card-title">Usage Summary</h3>
+    <a href="/dashboard/usage" class="btn btn-ghost btn-sm">Details</a>
+  </div>
+  <div class="card-body">
+    <div class="grid grid-cols-4 gap-md">
+      <div>
+        <p class="text-muted text-xs">This Month</p>
+        <p class="text-lg font-display">${{ '%.2f' | format(cost_summary.month_total) if cost_summary.month_total else '0.00' }}</p>
+      </div>
+      <div>
+        <p class="text-muted text-xs">LLM Calls</p>
+        <p class="text-lg font-display">{{ cost_summary.llm_calls | default(0) }}</p>
+      </div>
+      <div>
+        <p class="text-muted text-xs">Image Gens</p>
+        <p class="text-lg font-display">{{ cost_summary.image_gens | default(0) }}</p>
+      </div>
+      <div>
+        <p class="text-muted text-xs">Budget Left</p>
+        <p class="text-lg font-display" style="color: {% if cost_summary.budget_remaining and cost_summary.budget_remaining < 5 %}var(--ember-400){% else %}var(--parchment-200){% endif %};">
+          ${{ '%.2f' | format(cost_summary.budget_remaining) if cost_summary.budget_remaining else '0.00' }}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Notification Feed -->
+{% if notifications %}
+<section class="card">
+  <div class="card-header">
+    <h3 class="card-title">Recent Notifications</h3>
+    <button class="btn btn-ghost btn-sm"
+            hx-patch="/api/notifications/read-all"
+            hx-swap="none">
+      Mark All Read
+    </button>
+  </div>
+  <div class="card-body">
+    {% for notif in notifications[:5] %}
+    <div class="notification-item {% if not notif.read_at %}unread{% endif %}"
+         hx-patch="/api/notifications/{{ notif.id }}/read"
+         hx-swap="none">
+      <p class="text-sm" style="color: var(--parchment-200);">{{ notif.message }}</p>
+      <p class="text-xs text-muted mt-xs">{{ notif.created_at | default('') }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

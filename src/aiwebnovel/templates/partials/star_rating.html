@@ -1,0 +1,43 @@
+{# Rating widget: -5 (robot heads / sloppy) to +5 (stars / good).
+   Robot heads = negative ratings (dimmed when not selected, glowing when filled).
+   Stars = positive ratings (gold when filled).
+   Zero is not a valid rating — skip it.
+   Everything must be inside #rating-widget for HTMX outerHTML swap. #}
+<div id="rating-widget">
+  <div class="slop-rating">
+    {# Robot heads: -5 to -1 (left side, worst to least bad) #}
+    <span class="rating-section rating-negative">
+      {% for i in range(-5, 0) %}
+      <span class="robot {{ 'filled' if (rating_value or 0) < 0 and i >= (rating_value or 0) else '' }}"
+            role="button" tabindex="0" aria-label="Rate {{ i }}"
+            data-value="{{ i }}"
+            hx-post="/novels/{{ novel_id }}/rate"
+            hx-vals='{"rating": {{ i }}}'
+            hx-swap="outerHTML" hx-target="#rating-widget"
+            title="Rate {{ i }}"
+            style="cursor: pointer;">&#129302;</span>
+      {% endfor %}
+    </span>
+    <span class="rating-divider">|</span>
+    {# Stars: +1 to +5 (right side, least good to best) #}
+    <span class="rating-section rating-positive">
+      {% for i in range(1, 6) %}
+      <span class="star {{ 'filled' if (rating_value or 0) > 0 and i <= (rating_value or 0) else '' }}"
+            role="button" tabindex="0" aria-label="Rate {{ i }} stars"
+            data-value="{{ i }}"
+            hx-post="/novels/{{ novel_id }}/rate"
+            hx-vals='{"rating": {{ i }}}'
+            hx-swap="outerHTML" hx-target="#rating-widget"
+            title="Rate +{{ i }}"
+            style="cursor: pointer;">&#9733;</span>
+      {% endfor %}
+    </span>
+  </div>
+  {% if rating_count %}
+  <p class="text-xs text-muted mt-xs">
+    {{ '%.1f' | format(avg_rating or 0) }} avg from {{ rating_count }} {{ 'rating' if rating_count == 1 else 'ratings' }}
+  </p>
+  {% else %}
+  <p class="text-xs text-muted mt-xs">Be the first to rate</p>
+  {% endif %}
+</div>

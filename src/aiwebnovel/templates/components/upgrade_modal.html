@@ -1,0 +1,55 @@
+{# Upgrade modal — shown when free tier limit is hit.
+   Triggered by JS listening for HX-Trigger: show-upgrade-modal
+   or by calling showUpgradeModal(message) directly. #}
+<div id="upgrade-modal-backdrop" style="
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+">
+  <div class="card" style="
+    max-width: 420px;
+    margin: auto;
+    animation: fadeIn 0.2s ease;
+  ">
+    <div class="card-header" style="text-align: center;">
+      <h3 class="card-title" style="color: var(--arcane-400);">Free Tier Limit</h3>
+    </div>
+    <div class="card-body" style="text-align: center;">
+      <p id="upgrade-modal-message" class="font-serif mb-lg" style="color: var(--parchment-200); line-height: 1.7;">
+        You've hit the free tier limit. Add your own API key to unlock unlimited generation.
+      </p>
+      <div class="flex gap-md justify-center">
+        <a href="/dashboard/settings#api-keys" class="btn btn-primary">Add API Key</a>
+        <button type="button" class="btn btn-ghost" onclick="hideUpgradeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showUpgradeModal(message) {
+  if (message) document.getElementById('upgrade-modal-message').textContent = message;
+  var el = document.getElementById('upgrade-modal-backdrop');
+  el.style.display = 'flex';
+}
+function hideUpgradeModal() {
+  document.getElementById('upgrade-modal-backdrop').style.display = 'none';
+}
+// Listen for HTMX trigger from 403 responses
+document.body.addEventListener('show-upgrade-modal', function(evt) {
+  var msg = evt.detail && evt.detail.message ? evt.detail.message : null;
+  showUpgradeModal(msg);
+});
+// Also listen on htmx:responseError for 403 with upgrade trigger
+document.body.addEventListener('htmx:responseError', function(evt) {
+  if (evt.detail.xhr && evt.detail.xhr.status === 403) {
+    try {
+      var data = JSON.parse(evt.detail.xhr.responseText);
+      if (data.detail) showUpgradeModal(data.detail);
+    } catch(e) {}
+  }
+});
+</script>

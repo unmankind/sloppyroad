@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block title %}Generating Chapter {{ chapter_number }} — {{ novel.title }}{% endblock %}
+
+{% block head_extra %}
+<style>
+  .chapter-forge-container {
+    max-width: 44rem;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  /* Pipeline stages */
+  .chapter-stages {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin: var(--space-xl) 0;
+    text-align: left;
+  }
+  .chapter-stage {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    transition: all 0.5s ease;
+  }
+  .chapter-stage.waiting {
+    opacity: 0.35;
+    background: linear-gradient(90deg, transparent 25%, rgba(139, 92, 246, 0.03) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: stage-shimmer 3s ease-in-out infinite;
+  }
+  .chapter-stage.active {
+    opacity: 1;
+    border-color: var(--arcane-700);
+    background: rgba(139, 92, 246, 0.05);
+    animation: stage-glow 2s ease-in-out infinite;
+  }
+  .chapter-stage.complete {
+    opacity: 0.7;
+    animation: stage-complete-flash 0.5s ease-out;
+  }
+  @keyframes stage-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @keyframes stage-glow {
+    0%, 100% { border-color: var(--arcane-700); background: rgba(139, 92, 246, 0.05); box-shadow: none; }
+    50% { border-color: var(--arcane-500); background: rgba(139, 92, 246, 0.1); box-shadow: 0 0 12px rgba(139, 92, 246, 0.15); }
+  }
+  @keyframes stage-complete-flash {
+    0% { background: rgba(139, 92, 246, 0.15); border-color: var(--arcane-400); }
+    100% { background: transparent; border-color: transparent; }
+  }
+  .stage-icon {
+    font-size: 1.4rem;
+    width: 2rem;
+    text-align: center;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+  }
+  .chapter-stage.active .stage-icon {
+    animation: icon-pulse 2s ease-in-out infinite;
+  }
+  @keyframes icon-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+  .stage-info { flex: 1; }
+  .stage-name {
+    font-size: 0.9rem;
+    color: var(--parchment-200);
+    transition: color 0.3s ease;
+  }
+  .stage-subtitle {
+    font-size: 0.75rem;
+    color: var(--ink-400);
+    margin-top: 2px;
+    font-style: italic;
+    transition: color 0.3s ease;
+  }
+  .chapter-stage.active .stage-name {
+    color: var(--arcane-300);
+    font-weight: 500;
+  }
+  .chapter-stage.active .stage-subtitle {
+    color: var(--arcane-500);
+  }
+  .chapter-stage.complete .stage-name {
+    color: var(--parchment-400);
+    text-decoration: line-through;
+    text-decoration-color: var(--ink-500);
+  }
+  .stage-check {
+    color: var(--arcane-400);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .chapter-stage.complete .stage-check {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Lore rotation */
+  .lore-card {
+    min-height: 8rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-color: var(--ink-600);
+    transition: opacity 0.6s ease;
+  }
+  .lore-card.fading { opacity: 0; }
+
+  /* Writing icon */
+  @keyframes quill-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 1; }
+  }
+  .quill-icon {
+    font-size: 4rem;
+    animation: quill-pulse 2.5s ease-in-out infinite;
+    display: inline-block;
+  }
+
+  /* Error state */
+  .chapter-error {
+    border-color: var(--ember-700);
+    background: rgba(239, 68, 68, 0.05);
+  }
+  .chapter-error .card-body {
+    color: var(--ember-300);
+  }
+
+  /* Progress bar shimmer */
+  #chapter-progress {
+    background: linear-gradient(90deg, var(--arcane-700) 0%, var(--arcane-400) 50%, var(--arcane-700) 100%);
+    background-size: 200% 100%;
+    animation: progress-shimmer 2s linear infinite;
+  }
+  @keyframes progress-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Particle background */
+  @keyframes float-up {
+    0% { transform: translateY(0) scale(1); opacity: 0.4; }
+    100% { transform: translateY(-200px) scale(0.3); opacity: 0; }
+  }
+  .chapter-particles {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .chapter-particle {
+    position: absolute;
+    bottom: -10px;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--arcane-500);
+    animation: float-up linear infinite;
+    opacity: 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if ready_to_generate %}
+{# No active job — show ready state with POST trigger button #}
+<div class="container py-3xl" style="max-width: 32rem;">
+  <div class="card" style="text-align: center; border-color: var(--arcane-700);">
+    <div class="card-body" style="padding: var(--space-2xl);">
+      <div style="font-size: 3rem; margin-bottom: var(--space-lg);">&#9997;</div>
+      <h2 class="font-display mb-md" style="color: var(--parchment-100);">Ready to Generate</h2>
+      <p class="font-serif text-muted mb-xl" style="line-height: 1.7;">
+        The slop machine is warmed up and ready to churn out your next chapter.
+      </p>
+      <div class="flex gap-md justify-center">
+        <form method="post" action="/novels/{{ novel.id }}/generate">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-primary">Generate Next Chapter</button>
+        </form>
+        <a href="/novels/{{ novel.id }}" class="btn btn-ghost">Back to Novel</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% elif limit_hit %}
+{# Free tier limit reached — show upgrade message instead of generation UI #}
+<div class="container py-3xl" style="max-width: 32rem;">
+  <div class="card" style="text-align: center; border-color: var(--arcane-700);">
+    <div class="card-body" style="padding: var(--space-2xl);">
+      <div style="font-size: 3rem; margin-bottom: var(--space-lg);">&#128683;</div>
+      <h2 class="font-display mb-md" style="color: var(--parchment-100);">Free Tier Limit</h2>
+      <p class="font-serif text-muted mb-xl" style="line-height: 1.7;">
+        {{ limit_message }}
+      </p>
+      <div class="flex gap-md justify-center">
+        <a href="/dashboard/settings#api-keys" class="btn btn-primary">Add API Key</a>
+        <a href="/novels/{{ novel.id }}" class="btn btn-ghost">Back to Novel</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<!-- Ambient particles -->
+<div class="chapter-particles" id="particles"></div>
+
+<div class="container py-xl animate-fade-in" style="position: relative; z-index: 1;">
+  <div class="chapter-forge-container">
+
+    <div class="quill-icon" id="quill-icon">&#9997;</div>
+    <h2 class="font-display mt-lg mb-sm" style="color: var(--parchment-100); font-size: 2rem;" id="chapter-heading">
+      Generating Chapter {{ chapter_number }}<br>
+      <span style="color: var(--arcane-300);">{{ novel.title }}</span>
+    </h2>
+    <p class="text-muted text-sm mb-xl" id="chapter-elapsed"></p>
+
+    <!-- Chapter Generation Stages -->
+    <div class="chapter-stages" id="pipeline">
+      <div class="chapter-stage waiting" data-stage="planning">
+        <span class="stage-icon">&#128220;</span>
+        <span class="stage-info">
+          <span class="stage-name">Planning the Chapter Arc</span>
+          <div class="stage-subtitle">Pretending to have a plan...</div>
+        </span>
+        <span class="stage-check">&#10003;</span>
+      </div>
+      <div class="chapter-stage waiting" data-stage="assembling_context">
+        <span class="stage-icon">&#128218;</span>
+        <span class="stage-info">
+          <span class="stage-name">Assembling Story Context</span>
+          <div class="stage-subtitle">Skimming its own previous work...</div>
+        </span>
+        <span class="stage-check">&#10003;</span>
+      </div>
+      <div class="chapter-stage waiting" data-stage="generating">
+        <span class="stage-icon">&#9997;</span>
+        <span class="stage-info">
+          <span class="stage-name">Generating Prose</span>
+          <div class="stage-subtitle">The tokens are flowing...</div>
+        </span>
+        <span class="stage-check">&#10003;</span>
+      </div>
+      <div class="chapter-stage waiting" data-stage="analyzing">
+        <span class="stage-icon">&#128269;</span>
+        <span class="stage-info">
+          <span class="stage-name">Analyzing Continuity</span>
+          <div class="stage-subtitle">Hoping it didn't contradict itself...</div>
+        </span>
+        <span class="stage-check">&#10003;</span>
+      </div>
+      <div class="chapter-stage waiting" data-stage="saving">
+        <span class="stage-icon">&#128366;</span>
+        <span class="stage-info">
+          <span class="stage-name">Saving the Chapter</span>
+          <div class="stage-subtitle">Committing the slop to the database...</div>
+        </span>
+        <span class="stage-check">&#10003;</span>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="stream-progress mt-lg">
+      <div class="progress-bar">
+        <div class="progress-bar-fill" id="chapter-progress" style="width: 0%;"></div>
+      </div>
+      <p class="text-xs text-muted mt-sm" id="chapter-progress-text">Warming up the slop machine...</p>
+    </div>
+
+    <!-- Rotating lore / writing tips -->
+    <div class="card lore-card mt-xl" id="lore-card">
+      <div class="card-body">
+        <p class="font-serif" style="color: var(--parchment-300); font-style: italic;" id="lore-text">
+          "A chapter is not a container for plot. It is an excuse to burn API credits."
+        </p>
+        <p class="text-xs mt-sm" style="color: var(--ink-400);" id="lore-source">
+          &mdash; On AI chapter craft
+        </p>
+      </div>
+    </div>
+
+    <!-- Error state (hidden) -->
+    <div id="chapter-error" class="card chapter-error mt-xl hidden">
+      <div class="card-body">
+        <p class="text-sm" id="chapter-error-text"></p>
+        <div class="mt-md flex gap-sm" style="justify-content: center;">
+          <form method="post" action="/novels/{{ novel.id }}/generate" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-primary btn-sm">Retry</button>
+          </form>
+          <a href="/novels/{{ novel.id }}" class="btn btn-ghost btn-sm">Back to Novel</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completion (hidden) — shown briefly before auto-redirect -->
+    <div id="chapter-complete" class="hidden mt-xl">
+      <h2 class="font-display mb-md" style="color: var(--arcane-300); font-size: 1.8rem;">
+        The Chapter Has Been Slopped
+      </h2>
+      <p class="font-serif text-lg mb-xl" style="color: var(--parchment-300);">
+        Redirecting you to consume the output...
+      </p>
+      <div class="flex gap-md" style="justify-content: center;">
+        <a href="#" id="read-chapter-link" class="btn btn-primary btn-lg">Read Chapter</a>
+        <a href="/novels/{{ novel.id }}" class="btn btn-ghost btn-lg">Back to Novel</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if not limit_hit and not ready_to_generate %}
+<script>
+(function() {
+  var novelId = {{ novel.id }};
+  var jobId = {{ job_id }};
+  var chapterNumber = {{ chapter_number }};
+  var stageNames = ['planning', 'assembling_context', 'generating', 'analyzing', 'saving'];
+
+  // Initialize from server-rendered state
+  var jobStatus = '{{ job_status }}';
+  var serverStart = '{{ started_at }}';
+  var currentStage = '{{ current_stage }}';
+  var startTime = serverStart ? new Date(serverStart + 'Z').getTime() : Date.now();
+
+  var progressBar = document.getElementById('chapter-progress');
+  var progressText = document.getElementById('chapter-progress-text');
+  var elapsedEl = document.getElementById('chapter-elapsed');
+  var quillIcon = document.getElementById('quill-icon');
+  var chapterHeading = document.getElementById('chapter-heading');
+  var chapterComplete = document.getElementById('chapter-complete');
+  var chapterError = document.getElementById('chapter-error');
+  var chapterErrorText = document.getElementById('chapter-error-text');
+  var loreCard = document.getElementById('lore-card');
+  var loreText = document.getElementById('lore-text');
+  var loreSource = document.getElementById('lore-source');
+  var readLink = document.getElementById('read-chapter-link');
+
+  // ── Lore snippets ──────────────────────────────────────────────
+  var lore = [
+    {text: "A chapter is not a container for plot. It is an excuse to burn API credits.", source: "On AI chapter craft"},
+    {text: "The best AI chapters end with a cliffhanger because the context window ran out.", source: "On AI pacing"},
+    {text: "In AI progression fantasy, every power gained costs approximately $0.03 in API fees.", source: "On the real cost of power"},
+    {text: "AI dialogue reveals that every character sounds vaguely the same. The AI is working on it. It is not working on it.", source: "On AI dialogue"},
+    {text: "A cultivation breakthrough in AI fiction always happens at the most dramatically convenient moment. Coincidence? No, it's a prompt.", source: "On AI breakthroughs"},
+    {text: "The AI mentor character will dispense wisdom that sounds profound until you think about it for more than three seconds.", source: "On AI mentors"},
+    {text: "World-building is an iceberg. The AI generated the tip and forgot the rest existed.", source: "On AI subtlety"},
+    {text: "The AI antagonist was once the protagonist of their own story. That story was also AI-generated. It's slop all the way down.", source: "On recursion"},
+    {text: "Tension is about what might happen. The AI doesn't know what might happen either, which is frankly more exciting.", source: "On AI tension"},
+    {text: "The AI has never once written a chapter without at least one character clenching their fists.", source: "On AI character tics"},
+    {text: "Every AI chapter contains the phrase 'a mix of emotions flickered across their face.' We've tried to stop it. We can't.", source: "On AI prose habits"},
+    {text: "The protagonist will have an internal monologue about the nature of power. This is non-negotiable.", source: "On AI narrative priorities"},
+    {text: "Fun fact: if you fed this chapter to a different AI, it would call it 'a compelling narrative with room for improvement.'", source: "On AI literary criticism"},
+    {text: "Somewhere in this chapter, the AI will describe someone's eyes. It always describes the eyes.", source: "On AI character description"},
+    {text: "The Void does not hunger. It simply... waits. The AI put that line in. Again.", source: "Fragment recovered during generation"},
+    {text: "No neurons were harmed in the making of this chapter. The silicon, however, is screaming.", source: "On the creative process"},
+  ];
+  var loreIndex = 0;
+
+  // Rotate lore every 15 seconds
+  var loreTimer = setInterval(function() {
+    loreIndex = (loreIndex + 1) % lore.length;
+    loreCard.classList.add('fading');
+    setTimeout(function() {
+      loreText.textContent = '\u201C' + lore[loreIndex].text + '\u201D';
+      loreSource.textContent = '\u2014 ' + lore[loreIndex].source;
+      loreCard.classList.remove('fading');
+    }, 600);
+  }, 15000);
+
+  // ── Elapsed timer ──────────────────────────────────────────────
+  function updateElapsed() {
+    var secs = Math.floor((Date.now() - startTime) / 1000);
+    var mins = Math.floor(secs / 60);
+    secs = secs % 60;
+    elapsedEl.textContent = (mins > 0 ? mins + 'm ' : '') + secs + 's elapsed';
+  }
+  updateElapsed();
+  var elapsedTimer = setInterval(updateElapsed, 1000);
+
+  // ── Particles ──────────────────────────────────────────────────
+  var particleContainer = document.getElementById('particles');
+  function spawnParticle() {
+    var p = document.createElement('div');
+    p.className = 'chapter-particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (3 + Math.random() * 4) + 's';
+    p.style.animationDelay = Math.random() * 2 + 's';
+    particleContainer.appendChild(p);
+    setTimeout(function() { p.remove(); }, 7000);
+  }
+  var particleTimer = setInterval(spawnParticle, 400);
+
+  // ── Stage rendering ────────────────────────────────────────────
+  function renderStage(stage) {
+    var allEls = document.querySelectorAll('.chapter-stage');
+    var stageIdx = stageNames.indexOf(stage);
+    if (stageIdx < 0) stageIdx = 0;
+
+    allEls.forEach(function(el, idx) {
+      el.classList.remove('active', 'complete', 'waiting');
+      if (idx < stageIdx) {
+        el.classList.add('complete');
+      } else if (idx === stageIdx) {
+        el.classList.add('active');
+      } else {
+        el.classList.add('waiting');
+      }
+    });
+
+    var pct = Math.round((stageIdx / stageNames.length) * 100);
+    progressBar.style.width = pct + '%';
+
+    if (stageIdx === 0) {
+      progressText.textContent = 'Warming up the slop machine...';
+    } else {
+      progressText.textContent = 'Stage ' + stageIdx + ' of ' + stageNames.length + ' complete';
+    }
+  }
+
+  // ── Completion ─────────────────────────────────────────────────
+  function showComplete() {
+    clearInterval(loreTimer);
+    clearInterval(elapsedTimer);
+    clearInterval(particleTimer);
+    clearInterval(pollTimer);
+
+    // Mark all stages complete
+    document.querySelectorAll('.chapter-stage').forEach(function(el) {
+      el.classList.remove('active', 'waiting');
+      el.classList.add('complete');
+    });
+    progressBar.style.width = '100%';
+    progressText.textContent = 'All stages complete';
+
+    // Swap UI
+    quillIcon.style.animation = 'none';
+    quillIcon.textContent = '\u2728';
+    loreCard.classList.add('hidden');
+    chapterComplete.classList.remove('hidden');
+
+    var readUrl = '/novels/' + novelId + '/chapters/' + chapterNumber;
+    readLink.href = readUrl;
+
+    // Auto-redirect after a brief moment
+    setTimeout(function() {
+      window.location.href = readUrl;
+    }, 2000);
+  }
+
+  function showError(message) {
+    clearInterval(loreTimer);
+    clearInterval(elapsedTimer);
+    clearInterval(particleTimer);
+    clearInterval(pollTimer);
+
+    quillIcon.style.animation = 'none';
+    quillIcon.textContent = '\u26A0';
+    chapterHeading.textContent = 'The Slop Machine Jammed';
+    loreCard.classList.add('hidden');
+    chapterErrorText.textContent = message || 'The slop machine jammed. Even AI has off days. You can retry.';
+    chapterError.classList.remove('hidden');
+  }
+
+  // ── Initial render from server state ───────────────────────────
+  if (currentStage) {
+    renderStage(currentStage);
+  }
+
+  if (jobStatus === 'completed') {
+    showComplete();
+  } else if (jobStatus === 'failed') {
+    showError('{{ error_message or "" }}');
+  }
+
+  // ── Polling ────────────────────────────────────────────────────
+  var pollTimer = null;
+  if (jobStatus !== 'completed' && jobStatus !== 'failed') {
+    pollTimer = setInterval(function() {
+      fetch('/novels/' + novelId + '/generate/status', {
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.stage_name) {
+            renderStage(data.stage_name);
+          }
+          if (data.chapter_number) {
+            chapterNumber = data.chapter_number;
+          }
+          if (data.status === 'completed' || data.chapter_exists) {
+            showComplete();
+          } else if (data.status === 'failed') {
+            showError(data.error_message);
+          }
+        })
+        .catch(function() {
+          // Network error — keep polling, it might recover
+        });
+    }, 3000);
+  }
+})();
+</script>
+{% endif %}
+{% endblock %}

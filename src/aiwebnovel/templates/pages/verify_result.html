@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Email Verification{% endblock %}
+
+{% block content %}
+<div class="container py-3xl" style="max-width: 28rem;">
+  <div class="text-center">
+    {% if verified %}
+    <div style="font-size: 3rem; margin-bottom: var(--space-lg);">&#10003;</div>
+    <h1 style="font-size: 1.75rem; color: var(--parchment-100); margin-bottom: var(--space-md);">
+      Email Verified!
+    </h1>
+    <p class="font-serif text-muted" style="line-height: 1.7; margin-bottom: var(--space-xl);">
+      Your account is ready. Time to generate some certified AI slop.
+    </p>
+    <a href="/auth/login" class="btn btn-primary" style="display: inline-block;">
+      Sign In
+    </a>
+    {% else %}
+    <div style="font-size: 3rem; margin-bottom: var(--space-lg);">&#10007;</div>
+    <h1 style="font-size: 1.75rem; color: var(--ember-400); margin-bottom: var(--space-md);">
+      Verification Failed
+    </h1>
+    <p class="font-serif text-muted" style="line-height: 1.7; margin-bottom: var(--space-xl);">
+      {{ error }}
+    </p>
+
+    <div class="card" style="text-align: left;">
+      <div class="card-body">
+        <p class="text-sm text-muted" style="margin-bottom: var(--space-md);">
+          Request a new verification link:
+        </p>
+        <form action="/auth/resend-verification" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <div class="mb-md">
+            <input type="email" name="email" placeholder="your@email.com"
+                   class="form-input" style="width: 100%;" required>
+          </div>
+          <button type="submit" class="btn btn-secondary" style="width: 100%;">
+            Resend Verification Email
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,266 @@
+{% extends "author_base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block author_content %}
+<h2 class="mb-xl">Author Settings</h2>
+
+<!-- Flash Messages -->
+{% if errors %}
+<div class="card mb-lg" style="border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05);">
+  <div class="card-body">
+    {% for err in errors %}
+    <p class="text-sm" style="color: #f87171;">{{ err }}</p>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if success %}
+<div class="card mb-lg" style="border-color: rgba(74, 222, 128, 0.3); background: rgba(74, 222, 128, 0.05);">
+  <div class="card-body">
+    {% for msg in success %}
+    <p class="text-sm" style="color: #4ade80;">{{ msg }}</p>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<form method="post" action="/dashboard/settings">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <!-- Profile Section -->
+  <section class="card mb-xl">
+    <div class="card-header">
+      <h3 class="card-title">Profile</h3>
+    </div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label" for="display_name">Display Name</label>
+        <input type="text" id="display_name" name="display_name" class="form-input"
+               value="{{ profile.display_name or '' if profile else '' }}"
+               placeholder="Your pen name" maxlength="200">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="bio">Bio</label>
+        <textarea id="bio" name="bio" class="form-input" rows="4"
+                  placeholder="Tell readers about yourself..." maxlength="2000"
+                  style="resize: vertical;">{{ profile.bio or '' if profile else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email</label>
+        <input type="email" id="email" name="email" class="form-input"
+               value="{{ user.email or '' if user else '' }}"
+               placeholder="your@email.com">
+      </div>
+    </div>
+  </section>
+
+  <!-- Password Section -->
+  <section class="card mb-xl">
+    <div class="card-header">
+      <h3 class="card-title">Change Password</h3>
+    </div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label" for="current_password">Current Password</label>
+        <input type="password" id="current_password" name="current_password" class="form-input"
+               placeholder="Enter current password" autocomplete="current-password">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="new_password">New Password</label>
+        <input type="password" id="new_password" name="new_password" class="form-input"
+               placeholder="At least 8 characters" minlength="8" autocomplete="new-password">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="confirm_password">Confirm New Password</label>
+        <input type="password" id="confirm_password" name="confirm_password" class="form-input"
+               placeholder="Repeat new password" autocomplete="new-password">
+      </div>
+
+      <p class="text-xs text-muted">Leave blank to keep your current password.</p>
+    </div>
+  </section>
+
+  <!-- Novel Defaults Section -->
+  <section class="card mb-xl">
+    <div class="card-header">
+      <h3 class="card-title">Novel Defaults</h3>
+    </div>
+    <div class="card-body">
+      <label class="flex items-center gap-sm" style="cursor: pointer;">
+        <input type="checkbox" name="default_image_generation_enabled" value="1"
+               {% if profile and profile.default_image_generation_enabled %}checked{% endif %}>
+        <span class="text-sm" style="color: var(--parchment-200);">Enable image generation for new novels by default</span>
+      </label>
+      <p class="text-xs text-muted mt-sm">When enabled, new novels will automatically have cover, portrait, and scene image generation turned on.</p>
+    </div>
+  </section>
+
+  <!-- Plan & Usage Section -->
+  <section class="card mb-xl" id="plan-section">
+    <div class="card-header">
+      <h3 class="card-title">Plan & Usage</h3>
+      {% set plan = profile.plan_type | default('free') %}
+      {% if plan == 'admin' %}
+      <span class="badge badge-arcane">Admin</span>
+      {% elif plan == 'byok' %}
+      <span class="badge badge-arcane">BYOK</span>
+      {% else %}
+      <span class="badge badge-default">Free Tier</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if plan == 'free' %}
+      <div class="grid grid-cols-2 gap-md mb-lg">
+        <div>
+          <p class="text-muted text-xs">Lifetime Budget</p>
+          <p class="text-lg font-display">${{ '%.2f' | format((profile.api_budget_cents or 0) / 100) }}</p>
+        </div>
+        <div>
+          <p class="text-muted text-xs">Total Spent</p>
+          <p class="text-lg font-display">${{ '%.2f' | format(((profile.api_spent_cents or 0) + (profile.image_spent_cents or 0)) / 100) }}</p>
+        </div>
+      </div>
+      {% set total_spent = (profile.api_spent_cents or 0) + (profile.image_spent_cents or 0) %}
+      {% set budget = profile.api_budget_cents or 500 %}
+      {% set pct = (total_spent / budget * 100) | int if budget > 0 else 0 %}
+      <div style="background: var(--ink-800); border-radius: 4px; height: 8px; margin-bottom: var(--space-md);">
+        <div style="background: {% if pct > 75 %}var(--ember-400){% elif pct > 50 %}#eab308{% else %}var(--arcane-400){% endif %}; width: {{ [pct, 100] | min }}%; height: 100%; border-radius: 4px; transition: width 0.3s;"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-sm text-sm text-muted mb-lg">
+        <div>2 worlds max &bull; 3 chapters each</div>
+        <div style="text-align: right;">Model: Haiku (budget-friendly)</div>
+      </div>
+      {% else %}
+      <div class="grid grid-cols-2 gap-md mb-lg">
+        <div>
+          <p class="text-muted text-xs">LLM Calls Cost</p>
+          <p class="text-lg font-display">${{ '%.2f' | format((profile.api_spent_cents or 0) / 100) }}</p>
+        </div>
+        <div>
+          <p class="text-muted text-xs">Image Cost</p>
+          <p class="text-lg font-display">${{ '%.2f' | format((profile.image_spent_cents or 0) / 100) }}</p>
+        </div>
+      </div>
+      {% if plan == 'byok' %}
+      <p class="text-sm text-muted">Unlimited worlds &amp; chapters. Costs billed to your API key.</p>
+      {% elif plan == 'admin' %}
+      <p class="text-sm text-muted">Admin account — no limits.</p>
+      {% endif %}
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- API Keys Section (BYOK) -->
+  <section class="card mb-xl" id="api-keys">
+    <div class="card-header">
+      <h3 class="card-title">API Keys</h3>
+    </div>
+    <div class="card-body">
+      {% if plan == 'free' %}
+      <div style="padding: 1.5rem; border: 1px dashed var(--arcane-700); border-radius: var(--radius-md); margin-bottom: var(--space-lg);">
+        <p class="font-serif mb-sm" style="color: var(--parchment-200);">
+          <strong>Unlock Unlimited Slop</strong>
+        </p>
+        <p class="text-sm text-muted mb-md">
+          Add your own API key for unlimited worlds, chapters, and model selection.
+          Your key, your bill, our questionable pipeline.
+        </p>
+      </div>
+      {% endif %}
+
+      <div id="keys-list">
+        {% for provider_info in [
+          {"id": "anthropic", "name": "Anthropic", "desc": "Claude models (Haiku, Sonnet)"},
+          {"id": "openai", "name": "OpenAI", "desc": "GPT-4o, GPT-4o Mini"},
+          {"id": "replicate", "name": "Replicate", "desc": "Image generation (Flux, DALL-E)"}
+        ] %}
+        <div class="flex items-center gap-md py-md" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+          <div style="flex: 1;">
+            <strong class="text-sm" style="color: var(--parchment-100);">{{ provider_info.name }}</strong>
+            <p class="text-xs text-muted">{{ provider_info.desc }}</p>
+          </div>
+          <div id="key-status-{{ provider_info.id }}" class="flex items-center gap-sm">
+            {% set configured_key = api_keys | selectattr('provider', 'equalto', provider_info.id) | first | default(None) %}
+            {% if configured_key %}
+            <span class="badge badge-arcane text-xs">...{{ configured_key.key_suffix }}</span>
+            <button type="button" class="btn btn-ghost btn-sm" style="color: var(--ember-400);"
+                    onclick="removeKey('{{ provider_info.id }}')">Remove</button>
+            {% else %}
+            <button type="button" class="btn btn-secondary btn-sm"
+                    onclick="showKeyInput('{{ provider_info.id }}')">Add Key</button>
+            {% endif %}
+          </div>
+        </div>
+        <div id="key-input-{{ provider_info.id }}" style="display: none; padding: var(--space-md) 0;">
+          <div class="flex gap-sm">
+            <input type="password" id="key-value-{{ provider_info.id }}" class="form-input"
+                   placeholder="Paste your {{ provider_info.name }} API key" style="flex: 1;">
+            <button type="button" class="btn btn-primary btn-sm"
+                    onclick="saveKey('{{ provider_info.id }}')">Save &amp; Validate</button>
+            <button type="button" class="btn btn-ghost btn-sm"
+                    onclick="hideKeyInput('{{ provider_info.id }}')">Cancel</button>
+          </div>
+          <div id="key-error-{{ provider_info.id }}" class="text-xs mt-xs" style="color: var(--ember-400); display: none;"></div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Save Button -->
+  <div class="flex justify-end gap-md">
+    <a href="/dashboard" class="btn btn-ghost">Cancel</a>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+  </div>
+
+</form>
+
+<script>
+function showKeyInput(provider) {
+  document.getElementById('key-input-' + provider).style.display = 'block';
+  document.getElementById('key-error-' + provider).style.display = 'none';
+  document.getElementById('key-value-' + provider).focus();
+}
+function hideKeyInput(provider) {
+  document.getElementById('key-input-' + provider).style.display = 'none';
+  document.getElementById('key-value-' + provider).value = '';
+}
+async function saveKey(provider) {
+  const input = document.getElementById('key-value-' + provider);
+  const errorEl = document.getElementById('key-error-' + provider);
+  const apiKey = input.value.trim();
+  if (!apiKey) { errorEl.textContent = 'Please enter a key.'; errorEl.style.display = 'block'; return; }
+  errorEl.style.display = 'none';
+  try {
+    const resp = await fetch('/api/dashboard/keys', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({provider: provider, api_key: apiKey})
+    });
+    if (resp.ok) {
+      window.location.reload();
+    } else {
+      const data = await resp.json();
+      errorEl.textContent = data.detail || 'Validation failed.';
+      errorEl.style.display = 'block';
+    }
+  } catch (e) {
+    errorEl.textContent = 'Network error. Please try again.';
+    errorEl.style.display = 'block';
+  }
+}
+async function removeKey(provider) {
+  if (!confirm('Remove your ' + provider + ' key? You may lose BYOK access if no keys remain.')) return;
+  try {
+    const resp = await fetch('/api/dashboard/keys/' + provider, {method: 'DELETE'});
+    if (resp.ok) { window.location.reload(); }
+  } catch (e) { alert('Failed to remove key.'); }
+}
+</script>
+{% endblock %}

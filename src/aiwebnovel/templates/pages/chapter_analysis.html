@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis: Chapter {{ chapter.chapter_number }} - {{ novel.title }}{% endblock %}
+
+{% block head_extra %}
+<style>
+  .analysis-page { max-width: 56rem; margin: 0 auto; padding: var(--space-xl) var(--space-md); }
+  .analysis-header { text-align: center; margin-bottom: var(--space-2xl); }
+  .analysis-header h1 { font-family: var(--font-display); font-size: 1.5rem; color: var(--parchment-100); }
+  .analysis-header .subtitle { color: var(--parchment-400); font-size: 0.9rem; margin-top: var(--space-xs); }
+  .analysis-header .back-link { color: var(--arcane-300); font-size: 0.85rem; text-decoration: none; }
+  .analysis-header .back-link:hover { color: var(--arcane-200); }
+  .divider { width: 4rem; height: 1px; background: linear-gradient(90deg, transparent, var(--ink-500), transparent); margin: var(--space-lg) auto; }
+
+  /* Pending state */
+  .analysis-pending {
+    text-align: center; padding: var(--space-3xl) var(--space-xl);
+    border: 1px dashed var(--ink-600); border-radius: var(--radius-lg);
+    background: var(--ink-900);
+  }
+  .analysis-pending h2 { font-family: var(--font-display); color: var(--parchment-300); font-size: 1.2rem; }
+  .analysis-pending p { color: var(--ink-300); margin-top: var(--space-sm); font-size: 0.9rem; }
+  .pending-icon { font-size: 2rem; margin-bottom: var(--space-md); opacity: 0.5; }
+
+  /* Section cards */
+  .analysis-section {
+    background: var(--ink-900); border: 1px solid var(--ink-700);
+    border-radius: var(--radius-lg); padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+  .analysis-section h2 {
+    font-family: var(--font-display); font-size: 1.1rem; color: var(--parchment-200);
+    margin-bottom: var(--space-md); padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--ink-700);
+  }
+
+  /* Tension meter */
+  .tension-meter { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md); }
+  .tension-bar-bg {
+    flex: 1; height: 0.5rem; background: var(--ink-700); border-radius: 9999px; overflow: hidden;
+  }
+  .tension-bar-fill {
+    height: 100%; border-radius: 9999px;
+    transition: width 0.6s ease;
+  }
+  .tension-bar-fill.low { background: var(--arcane-500); }
+  .tension-bar-fill.mid { background: var(--ember-400); }
+  .tension-bar-fill.high { background: #e84040; }
+  .tension-value { font-family: var(--font-sans); font-size: 0.85rem; color: var(--parchment-300); min-width: 3rem; text-align: right; }
+  .tension-phase {
+    display: inline-block; font-family: var(--font-sans); font-size: 0.75rem;
+    padding: 0.15rem 0.5rem; border-radius: var(--radius-sm);
+    background: var(--ink-700); color: var(--parchment-400); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .tension-drivers { margin-top: var(--space-sm); }
+  .tension-drivers li { color: var(--ink-200); font-size: 0.85rem; margin-bottom: var(--space-xs); padding-left: var(--space-sm); border-left: 2px solid var(--ink-600); }
+
+  /* Power events */
+  .power-event {
+    padding: var(--space-md); background: var(--ink-800); border-radius: var(--radius-md);
+    margin-bottom: var(--space-sm); border-left: 3px solid var(--arcane-500);
+  }
+  .power-event-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-xs); }
+  .power-event-char { font-family: var(--font-display); color: var(--parchment-200); font-size: 0.95rem; }
+  .power-event-type {
+    font-family: var(--font-sans); font-size: 0.7rem; padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .power-event-type.rank_up { background: var(--arcane-800); color: var(--arcane-200); }
+  .power-event-type.new_ability { background: var(--ember-800); color: var(--ember-200); }
+  .power-event-type.ability_mastery { background: rgba(56,161,105,0.2); color: #68d391; }
+  .power-event-type.insight { background: var(--ink-700); color: var(--parchment-300); }
+  .power-event-desc { color: var(--ink-200); font-size: 0.85rem; margin-bottom: var(--space-xs); }
+  .power-score {
+    display: flex; align-items: center; gap: var(--space-sm); font-size: 0.8rem;
+    font-family: var(--font-sans); color: var(--ink-300); margin-top: var(--space-xs);
+  }
+  .score-badge {
+    padding: 0.1rem 0.4rem; border-radius: var(--radius-sm); font-weight: 600;
+  }
+  .score-badge.pass { background: rgba(56,161,105,0.2); color: #68d391; }
+  .score-badge.fail { background: rgba(232,64,64,0.2); color: #fc8181; }
+  .power-detail { color: var(--ink-300); font-size: 0.8rem; margin-top: var(--space-xs); }
+  .power-detail strong { color: var(--ink-200); }
+
+  /* Foreshadowing */
+  .seed-item {
+    display: flex; gap: var(--space-md); align-items: flex-start;
+    padding: var(--space-sm) 0; border-bottom: 1px solid var(--ink-800);
+  }
+  .seed-item:last-child { border-bottom: none; }
+  .seed-status {
+    font-family: var(--font-sans); font-size: 0.7rem; padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .seed-status.planted { background: rgba(107,69,184,0.2); color: var(--arcane-300); }
+  .seed-status.reinforced { background: rgba(233,163,31,0.15); color: var(--ember-300); }
+  .seed-status.fulfilled { background: rgba(56,161,105,0.2); color: #68d391; }
+  .seed-desc { color: var(--ink-200); font-size: 0.85rem; }
+  .seed-type { color: var(--ink-400); font-size: 0.75rem; font-family: var(--font-sans); }
+
+  /* Bible entries */
+  .bible-entry {
+    padding: var(--space-sm) var(--space-md); background: var(--ink-800);
+    border-radius: var(--radius-md); margin-bottom: var(--space-xs);
+  }
+  .bible-entry-type {
+    font-family: var(--font-sans); font-size: 0.7rem; color: var(--arcane-300);
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.15rem;
+  }
+  .bible-entry-content { color: var(--ink-200); font-size: 0.85rem; }
+  .bible-tags { margin-top: 0.2rem; }
+  .bible-tag {
+    display: inline-block; font-size: 0.65rem; font-family: var(--font-sans);
+    color: var(--ink-400); background: var(--ink-700); padding: 0.05rem 0.3rem;
+    border-radius: var(--radius-sm); margin-right: 0.2rem;
+  }
+
+  /* Chekhov guns */
+  .gun-item {
+    padding: var(--space-md); background: var(--ink-800); border-radius: var(--radius-md);
+    margin-bottom: var(--space-sm); border-left: 3px solid var(--ember-500);
+  }
+  .gun-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-xs); }
+  .gun-status {
+    font-family: var(--font-sans); font-size: 0.7rem; padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .gun-status.loaded { background: rgba(232,120,32,0.2); color: var(--ember-300); }
+  .gun-status.cocked { background: rgba(232,64,64,0.2); color: #fc8181; }
+  .gun-status.resolved { background: rgba(56,161,105,0.2); color: #68d391; }
+  .gun-status.subverted { background: rgba(107,69,184,0.2); color: var(--arcane-300); }
+  .gun-desc { color: var(--ink-200); font-size: 0.85rem; }
+  .gun-meta { color: var(--ink-400); font-size: 0.75rem; font-family: var(--font-sans); margin-top: var(--space-xs); }
+  .gun-pressure { display: inline-block; margin-left: var(--space-sm); }
+
+  .empty-state { color: var(--ink-400); font-size: 0.85rem; font-style: italic; padding: var(--space-sm) 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analysis-page">
+  <header class="analysis-header">
+    <a href="/novels/{{ novel.id }}/chapters/{{ chapter.chapter_number }}" class="back-link">&larr; Back to Chapter</a>
+    <h1>Chapter {{ chapter.chapter_number }} Analysis</h1>
+    {% if chapter.title %}
+    <p class="subtitle">{{ chapter.title }}</p>
+    {% endif %}
+    <div class="divider"></div>
+  </header>
+
+  {% if not analysis_available %}
+  {# ── Pending state ─────────────────────────────────────────────── #}
+  <div class="analysis-pending">
+    <div class="pending-icon">&#x23F3;</div>
+    <h2>Analysis Pending</h2>
+    <p>
+      Post-generation analysis has not been run for this chapter yet.
+      Analysis is performed automatically after chapter generation completes.
+    </p>
+    <p style="margin-top: var(--space-md);">
+      <a href="/novels/{{ novel.id }}/chapters/{{ chapter.chapter_number }}"
+         class="btn btn-secondary btn-sm"
+         hx-boost="true">&larr; Return to Chapter</a>
+    </p>
+  </div>
+
+  {% else %}
+  {# ── Tension ───────────────────────────────────────────────────── #}
+  <section class="analysis-section">
+    <h2>Tension &amp; Emotional Arc</h2>
+    <div class="tension-meter">
+      <div class="tension-bar-bg">
+        {% set pct = (tension.tension_level * 100)|int %}
+        <div class="tension-bar-fill {% if tension.tension_level < 0.35 %}low{% elif tension.tension_level < 0.7 %}mid{% else %}high{% endif %}"
+             style="width: {{ pct }}%;"></div>
+      </div>
+      <span class="tension-value">{{ "%.0f"|format(tension.tension_level * 100) }}%</span>
+    </div>
+    {% if tension.tension_phase %}
+    <span class="tension-phase">{{ tension.tension_phase }}</span>
+    {% endif %}
+    {% if tension.key_tension_drivers %}
+    <ul class="tension-drivers">
+      {% for driver in tension.key_tension_drivers %}
+      <li>{{ driver }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+
+  {# ── Earned Power / Advancement ────────────────────────────────── #}
+  <section class="analysis-section">
+    <h2>Power Progression</h2>
+    {% if power_events %}
+    {% for event in power_events %}
+    <div class="power-event">
+      <div class="power-event-header">
+        <span class="power-event-char">{{ event.character.name }}</span>
+        <span class="power-event-type {{ event.event_type }}">{{ event.event_type | replace('_', ' ') }}</span>
+      </div>
+      <div class="power-event-desc">{{ event.description }}</div>
+      {% if event.earned_power_score is not none %}
+      <div class="power-score">
+        Earned Power Score:
+        <span class="score-badge {% if event.earned_power_score >= 0.5 %}pass{% else %}fail{% endif %}">
+          {{ "%.2f"|format(event.earned_power_score) }}
+        </span>
+        {% if event.earned_power_score >= 0.5 %}Approved{% else %}Rejected{% endif %}
+      </div>
+      {% endif %}
+      {% if event.struggle_context %}
+      <div class="power-detail"><strong>Struggle:</strong> {{ event.struggle_context }}</div>
+      {% endif %}
+      {% if event.sacrifice_or_cost %}
+      <div class="power-detail"><strong>Cost:</strong> {{ event.sacrifice_or_cost }}</div>
+      {% endif %}
+      {% if event.foundation %}
+      <div class="power-detail"><strong>Foundation:</strong> {{ event.foundation }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="empty-state">No power progression events detected in this chapter.</p>
+    {% endif %}
+  </section>
+
+  {# ── Foreshadowing ─────────────────────────────────────────────── #}
+  <section class="analysis-section">
+    <h2>Foreshadowing</h2>
+    {% if foreshadowing %}
+    {% for seed in foreshadowing %}
+    <div class="seed-item">
+      <span class="seed-status {{ seed.status }}">{{ seed.status }}</span>
+      <div>
+        <div class="seed-desc">{{ seed.description }}</div>
+        <div class="seed-type">{{ seed.seed_type }}
+          {% if seed.planted_at_chapter == chapter.chapter_number and seed.status == 'planted' %}
+            &mdash; planted this chapter
+          {% elif seed.fulfilled_at_chapter == chapter.chapter_number %}
+            &mdash; fulfilled this chapter (planted ch. {{ seed.planted_at_chapter }})
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="empty-state">No foreshadowing seeds planted or resolved in this chapter.</p>
+    {% endif %}
+  </section>
+
+  {# ── Chekhov Guns ──────────────────────────────────────────────── #}
+  <section class="analysis-section">
+    <h2>Chekhov Guns</h2>
+    {% if chekhov_guns %}
+    {% for gun in chekhov_guns %}
+    <div class="gun-item">
+      <div class="gun-header">
+        <span class="gun-desc">{{ gun.description }}</span>
+        <span class="gun-status {{ gun.status }}">{{ gun.status }}</span>
+      </div>
+      <div class="gun-meta">
+        {{ gun.gun_type }} &middot; introduced ch. {{ gun.introduced_at_chapter }}
+        {% if gun.last_touched_chapter and gun.last_touched_chapter != gun.introduced_at_chapter %}
+          &middot; last touched ch. {{ gun.last_touched_chapter }}
+        {% endif %}
+        {% if gun.resolution_chapter %}
+          &middot; resolved ch. {{ gun.resolution_chapter }}
+        {% endif %}
+        <span class="gun-pressure">pressure: {{ "%.1f"|format(gun.pressure_score) }}</span>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="empty-state">No Chekhov guns introduced, touched, or resolved in this chapter.</p>
+    {% endif %}
+  </section>
+
+  {# ── Story Bible Entries ───────────────────────────────────────── #}
+  <section class="analysis-section">
+    <h2>Story Bible Entries</h2>
+    {% if bible_entries %}
+    {% for entry in bible_entries %}
+    <div class="bible-entry">
+      <div class="bible-entry-type">{{ entry.entry_type }}</div>
+      <div class="bible-entry-content">{{ entry.content }}</div>
+      {% if entry.tags %}
+      <div class="bible-tags">
+        {% for tag in entry.tags %}
+        <span class="bible-tag">{{ tag }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="empty-state">No story bible entries extracted from this chapter.</p>
+    {% endif %}
+  </section>
+
+  {% endif %}
+</div>
+{% endblock %}

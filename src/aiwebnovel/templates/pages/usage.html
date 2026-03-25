@@ -1,0 +1,161 @@
+{% extends "author_base.html" %}
+
+{% block title %}The Bill{% endblock %}
+
+{% block author_content %}
+<h2 class="mb-xl">What This Slop Cost You</h2>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-2 gap-lg mb-2xl">
+  <div class="card">
+    <div class="card-body text-center">
+      <p class="text-sm text-muted mb-sm">LLM Cost</p>
+      <p class="font-display" style="font-size: 1.75rem; color: var(--arcane-400);">
+        ${{ '%.2f' | format(totals.cost_cents / 100) }}
+      </p>
+      <p class="text-xs text-muted">{{ '{:,}'.format(totals.calls | int) }} calls &middot; {{ '{:,}'.format(totals.tokens | int) }} tokens</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body text-center">
+      <p class="text-sm text-muted mb-sm">Image Cost</p>
+      <p class="font-display" style="font-size: 1.75rem; color: var(--arcane-400);">
+        ${{ '%.2f' | format(image_totals.cost_cents / 100) }}
+      </p>
+      <p class="text-xs text-muted">{{ '{:,}'.format(image_totals.gens | int) }} images generated</p>
+    </div>
+  </div>
+</div>
+
+<!-- Image Cost by Type -->
+{% if image_by_type %}
+<section class="card mb-xl">
+  <div class="card-header">
+    <h3 class="card-title">Image Cost by Type</h3>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--void-600);">
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Type</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Count</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in image_by_type %}
+        <tr style="border-bottom: 1px solid var(--void-700);">
+          <td style="padding: 0.75rem 1rem;">{{ (row.purpose or 'unknown') | replace('_', ' ') | title }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem;">{{ row.count }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem;">${{ '%.2f' | format(row.cost_cents / 100) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<!-- Per-Novel Breakdown -->
+<section class="card mb-xl">
+  <div class="card-header">
+    <h3 class="card-title">Cost by Novel</h3>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    {% if per_novel %}
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--void-600);">
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Novel</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Cost</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Tokens</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Calls</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in per_novel %}
+        <tr style="border-bottom: 1px solid var(--void-700);">
+          <td style="padding: 0.75rem 1rem;">{{ row.title }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem;">${{ '%.2f' | format(row.cost_cents / 100) }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem;">{{ '{:,}'.format(row.tokens | int) }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem;">{{ '{:,}'.format(row.calls | int) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-sm" style="padding: 1.5rem; text-align: center;">No usage data yet. The meter hasn't started running.</p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Per-Model Breakdown -->
+<section class="card mb-xl">
+  <div class="card-header">
+    <h3 class="card-title">Cost by Model</h3>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    {% if per_model %}
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--void-600);">
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Model</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Cost</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Tokens</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Calls</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in per_model %}
+        <tr style="border-bottom: 1px solid var(--void-700);">
+          <td style="padding: 0.75rem 1rem; font-family: monospace; font-size: 0.85rem;">{{ row.model }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem;">${{ '%.2f' | format(row.cost_cents / 100) }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem;">{{ '{:,}'.format(row.tokens | int) }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem;">{{ '{:,}'.format(row.calls | int) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-sm" style="padding: 1.5rem; text-align: center;">No usage data yet. The meter hasn't started running.</p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Recent Usage Log -->
+<section class="card mb-xl">
+  <div class="card-header">
+    <h3 class="card-title">Recent Usage</h3>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    {% if recent %}
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--void-600);">
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Time</th>
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Novel</th>
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Model</th>
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Purpose</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Tokens</th>
+          <th style="text-align: right; padding: 0.75rem 1rem; color: var(--parchment-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in recent %}
+        <tr style="border-bottom: 1px solid var(--void-700);">
+          <td style="padding: 0.75rem 1rem; font-size: 0.85rem; white-space: nowrap;">{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td style="padding: 0.75rem 1rem; font-size: 0.85rem;">{{ row.novel_title or '—' }}</td>
+          <td style="padding: 0.75rem 1rem; font-family: monospace; font-size: 0.8rem;">{{ row.model }}</td>
+          <td style="padding: 0.75rem 1rem; font-size: 0.85rem;">{{ row.purpose | replace('_', ' ') | title }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem; font-size: 0.85rem;">{{ '{:,}'.format(row.total_tokens | int) if row.total_tokens else '—' }}</td>
+          <td style="text-align: right; padding: 0.75rem 1rem; font-size: 0.85rem;">${{ '%.4f' | format(row.cost_cents / 100) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-sm" style="padding: 1.5rem; text-align: center;">No usage data yet. Generate some slop to see your bill here.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

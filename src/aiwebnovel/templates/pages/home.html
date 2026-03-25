@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+  <h1 class="hero-title">100% Certified AI Slop</h1>
+  <p class="hero-subtitle">
+    AI-generated progression fantasy with deep continuity
+    and suspiciously coherent power systems.
+  </p>
+  <div class="hero-actions">
+    <a href="/auth/login" class="btn btn-primary btn-lg hero-cta-primary">Start Slopping</a>
+    <a href="/browse" class="btn btn-ghost btn-lg hero-cta-secondary">Browse the Slop</a>
+  </div>
+</section>
+
+<!-- Featured Novels -->
+{% if featured_novels %}
+<section class="container py-2xl">
+  <h2 class="text-center mb-xl">Today&rsquo;s Finest Slop</h2>
+
+  {# Hero card: first novel gets large treatment #}
+  {% set hero = featured_novels[0] %}
+  {% set hero_genre_class = 'genre-' + (hero.genre | default('default')) %}
+  <a href="/novels/{{ hero.id }}" class="featured-hero {{ hero_genre_class }}" hx-boost="true">
+    <div class="featured-hero-gradient"></div>
+    <div class="featured-hero-content">
+      <div class="featured-hero-top">
+        {% if hero.tags %}
+          {% for tag in hero.tags[:2] %}
+          <span class="tag tag-glow">{{ tag }}</span>
+          {% endfor %}
+        {% endif %}
+        <span class="badge {{ hero.status | status_badge_class }}">{{ hero.status | format_status }}</span>
+      </div>
+      <h3 class="featured-hero-title">{{ hero.title }}</h3>
+      {% if hero.author_name %}
+      <p class="featured-hero-author">by {{ hero.author_name }}</p>
+      {% endif %}
+      {% if hero.description %}
+      <p class="featured-hero-synopsis">
+        {{ hero.description[:300] }}{% if hero.description | length > 300 %}...{% endif %}
+      </p>
+      {% endif %}
+      <div class="featured-hero-stats">
+        {% if hero.chapter_count %}
+        <span>{{ hero.chapter_count }} chapter{{ hero.chapter_count | pluralize }}</span>
+        {% endif %}
+        {% if hero.word_count %}
+        <span>{{ "{:,}".format(hero.word_count) }} words</span>
+        {% endif %}
+        {% if hero.avg_rating %}
+        <span class="star-rating star-rating-display">
+          {% for i in range(5) %}
+          <span class="star {% if i < hero.avg_rating | round %}filled{% endif %}">&#9733;</span>
+          {% endfor %}
+        </span>
+        {% endif %}
+        {% if hero.updated_at %}
+        <span>{{ hero.updated_at | timeago }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </a>
+
+  {# Remaining novels in a grid #}
+  {% if featured_novels | length > 1 %}
+  <div class="grid grid-cols-3 gap-lg" style="margin-top: var(--space-lg);">
+    {% for novel in featured_novels[1:] %}
+      {% include "components/novel_card.html" %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+<!-- How It Works -->
+<section class="container py-2xl">
+  <h2 class="text-center mb-xl">How the Slop Gets Made</h2>
+  <div class="grid grid-cols-3 gap-xl">
+    <div class="card text-center">
+      <div class="card-body">
+        <h4 class="mb-sm" style="color: var(--ember-400);">Worldbuild on Autopilot</h4>
+        <p class="text-muted">
+          An 8-stage pipeline hallucinates cosmology, power systems,
+          geography, history, and characters. It&rsquo;s like a fever dream,
+          but with better lore.
+        </p>
+      </div>
+    </div>
+    <div class="card text-center">
+      <div class="card-body">
+        <h4 class="mb-sm" style="color: var(--arcane-300);">Churn Out Chapters</h4>
+        <p class="text-muted">
+          AI writes chapters with suspiciously deep continuity, earned power
+          progression, and plot threads it actually remembers. Most of the time.
+        </p>
+      </div>
+    </div>
+    <div class="card text-center">
+      <div class="card-body">
+        <h4 class="mb-sm" style="color: var(--parchment-400);">Readers Steer the Ship</h4>
+        <p class="text-muted">
+          Oracle questions, Butterfly choices, and faction alignment let
+          readers nudge the story. Democracy was a mistake, but here we are.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Recent Chapters Feed -->
+{% if recent_chapters %}
+<section class="container py-2xl">
+  <h2 class="mb-lg">Fresh Off the Press</h2>
+  <div class="grid grid-cols-2 gap-md">
+    {% for chapter in recent_chapters %}
+    <a href="/novels/{{ chapter.novel_id }}/chapters/{{ chapter.chapter_number }}"
+       class="card chapter-feed-card" hx-boost="true">
+      <div class="chapter-feed-novel">{{ chapter.novel_title }}</div>
+      <div class="chapter-feed-body">
+        <div class="chapter-card-number">{{ chapter.chapter_number }}</div>
+        <div class="chapter-card-info">
+          <div class="chapter-card-title">{{ chapter.title }}</div>
+          <div class="chapter-card-meta">
+            {{ chapter.word_count | default('---') }} words
+            {% if chapter.created_at %}
+            &middot; {{ chapter.created_at | timeago }}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- CTA for Authors -->
+<section class="container py-3xl text-center">
+  <div class="card p-xl" style="max-width: 36rem; margin: 0 auto; border-color: var(--arcane-700);">
+    <h3 class="mb-md">Ready to Generate Some Content?</h3>
+    <p class="text-muted mb-lg">
+      Every great slop begins with a single API call. Build worlds, hallucinate
+      power systems, and let the machines write the novel you were always too
+      busy to write yourself.
+    </p>
+    <a href="/auth/login" class="btn btn-arcane btn-lg">Let&rsquo;s Get Sloppy</a>
+  </div>
+</section>
+{% endblock %}

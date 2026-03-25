@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}404{% endblock %}
+
+{% block content %}
+<div class="container py-3xl text-center" style="min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+  <h1 class="font-display mb-md" style="font-size: 3rem; color: var(--parchment-400); letter-spacing: 0.15em;">
+    404: Even the AI Couldn't Find This
+  </h1>
+  <p class="font-serif text-lg text-muted mb-2xl" style="max-width: 28rem;">
+    {{ message or 'We fed your URL to every model we have and they all hallucinated something different. None of it was this page, because this page does not exist.' }}
+  </p>
+  <div class="flex gap-md">
+    <a href="/" class="btn btn-secondary">Return Home</a>
+    <a href="/browse" class="btn btn-primary">Browse the Slop</a>
+  </div>
+</div>
+{% endblock %}

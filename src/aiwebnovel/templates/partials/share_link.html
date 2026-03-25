@@ -1,0 +1,14 @@
+<div class="flex gap-sm items-center">
+  <input type="text" readonly value="{{ share_url }}" id="share-url"
+         class="form-input"
+         style="flex: 1; padding: 0.75rem 1rem; background: var(--ink-900); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-300); font-size: 0.875rem; cursor: text;"
+         onclick="this.select()">
+  <button type="button" class="btn btn-secondary btn-sm"
+          onclick="copyShareLink()">Copy</button>
+</div>
+<div class="mt-sm">
+  <button type="button" class="btn btn-ghost btn-sm"
+          hx-post="/novels/{{ novel_id }}/settings/regenerate-share-token"
+          hx-target="#share-link-container" hx-swap="innerHTML"
+          style="font-size: 0.75rem; color: var(--parchment-400);">Regenerate share link</button>
+</div>

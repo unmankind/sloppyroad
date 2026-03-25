@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Power System — {{ novel.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-xl animate-fade-in">
+  <!-- Breadcrumb -->
+  <nav class="mb-lg">
+    <span class="text-muted text-sm">
+      <a href="/novels/{{ novel.id }}" style="color: var(--arcane-400); text-decoration: none;">{{ novel.title }}</a>
+      <span style="color: var(--ink-400); margin: 0 0.25rem;">/</span>
+      <a href="/novels/{{ novel.id }}/world" style="color: var(--arcane-400); text-decoration: none;">World</a>
+      <span style="color: var(--ink-400); margin: 0 0.25rem;">/</span>
+      Power System
+    </span>
+  </nav>
+
+  {% if power_system %}
+  <!-- Header -->
+  <header class="mb-2xl">
+    <div class="flex justify-between items-center flex-wrap gap-md">
+      <div>
+        <h1 class="font-display mb-sm" style="color: var(--ember-400);">{{ power_system.system_name }}</h1>
+        <p class="text-muted font-serif">The power system of {{ novel.title }}</p>
+      </div>
+      <a href="/novels/{{ novel.id }}/world" class="btn btn-ghost btn-sm">Back to World</a>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-3 gap-xl">
+    <!-- Main Content (2/3) -->
+    <div style="grid-column: span 2;">
+      <!-- Core Mechanic -->
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Core Mechanic</h3>
+        </div>
+        <div class="card-body">
+          <p class="font-serif text-lg" style="color: var(--parchment-200); line-height: 1.7;">
+            {{ power_system.core_mechanic }}
+          </p>
+        </div>
+      </section>
+
+      <!-- Ranks -->
+      {% if ranks %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Ranks &amp; Progression</h3>
+          <span class="text-muted text-sm">{{ ranks | length }} tiers</span>
+        </div>
+        <div class="card-body">
+          {% for rank in ranks %}
+          <div class="py-lg" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            <!-- Rank Header -->
+            <div class="flex items-center gap-md mb-md">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--arcane-700), var(--ember-400)); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; color: var(--parchment-100); flex-shrink: 0;">
+                {{ rank.rank_order }}
+              </div>
+              <div>
+                <h4 style="color: var(--parchment-100);">{{ rank.rank_name }}</h4>
+                {% if rank.population_ratio %}
+                <span class="text-xs text-muted">~{{ rank.population_ratio }} of practitioners</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Description -->
+            <p class="font-serif text-sm mb-md" style="color: var(--parchment-300); line-height: 1.6;">
+              {{ rank.description }}
+            </p>
+
+            <!-- Details Grid -->
+            <div class="grid gap-md" style="grid-template-columns: 1fr 1fr;">
+              <div>
+                <h5 class="text-xs text-muted mb-xs">Typical Capabilities</h5>
+                <p class="text-sm font-serif" style="color: var(--parchment-200);">{{ rank.typical_capabilities }}</p>
+              </div>
+              <div>
+                <h5 class="text-xs text-muted mb-xs">Qualitative Shift</h5>
+                <p class="text-sm font-serif" style="color: var(--parchment-200);">{{ rank.qualitative_shift }}</p>
+              </div>
+              <div>
+                <h5 class="text-xs text-muted mb-xs">Requirements</h5>
+                <p class="text-sm font-serif" style="color: var(--parchment-200);">{{ rank.advancement_requirements }}</p>
+              </div>
+              <div>
+                <h5 class="text-xs text-muted mb-xs">Bottleneck</h5>
+                <p class="text-sm font-serif" style="color: var(--parchment-200);">{{ rank.advancement_bottleneck }}</p>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Disciplines -->
+      {% if power_system.disciplines %}
+      <section class="card mb-xl">
+        <div class="card-header">
+          <h3 class="card-title">Disciplines</h3>
+          <span class="text-muted text-sm">{{ power_system.disciplines | length }} schools</span>
+        </div>
+        <div class="card-body">
+          {% for disc in power_system.disciplines %}
+          <div class="py-lg" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            <h4 style="color: var(--parchment-100);" class="mb-sm">{{ disc.name }}</h4>
+            <p class="font-serif text-sm mb-md" style="color: var(--parchment-300); line-height: 1.6;">{{ disc.philosophy }}</p>
+            <div class="grid gap-md" style="grid-template-columns: 1fr 1fr;">
+              {% if disc.source_energy %}
+              <div>
+                <h5 class="text-xs text-muted mb-xs">Source Energy</h5>
+                <p class="text-sm font-serif" style="color: var(--parchment-200);">{{ disc.source_energy }}</p>
+              </div>
+              {% endif %}
+              {% if disc.strengths %}
+              <div>
+                <h5 class="text-xs text-muted mb-xs">Strengths</h5>
+                <p class="text-sm font-serif" style="color: var(--parchment-200);">{% if disc.strengths is iterable and disc.strengths is not string %}{{ disc.strengths | join(', ') }}{% else %}{{ disc.strengths }}{% endif %}</p>
+              </div>
+              {% endif %}
+              {% if disc.weaknesses %}
+              <div>
+                <h5 class="text-xs text-muted mb-xs">Weaknesses</h5>
+                <p class="text-sm font-serif" style="color: var(--parchment-200);">{% if disc.weaknesses is iterable and disc.weaknesses is not string %}{{ disc.weaknesses | join(', ') }}{% else %}{{ disc.weaknesses }}{% endif %}</p>
+              </div>
+              {% endif %}
+              {% if disc.typical_practitioners %}
+              <div>
+                <h5 class="text-xs text-muted mb-xs">Typical Practitioners</h5>
+                <p class="text-sm font-serif" style="color: var(--parchment-200);">{% if disc.typical_practitioners is iterable and disc.typical_practitioners is not string %}{{ disc.typical_practitioners | join(', ') }}{% else %}{{ disc.typical_practitioners }}{% endif %}</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Power Ceiling -->
+      {% if power_system.power_ceiling %}
+      <section class="card">
+        <div class="card-header">
+          <h3 class="card-title">Power Ceiling</h3>
+        </div>
+        <div class="card-body">
+          <p class="font-serif" style="color: var(--parchment-200); line-height: 1.7;">
+            {{ power_system.power_ceiling }}
+          </p>
+        </div>
+      </section>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar (1/3) -->
+    <div>
+      <!-- Energy Source -->
+      <section class="card mb-lg">
+        <div class="card-header">
+          <h4 class="card-title">Energy Source</h4>
+        </div>
+        <div class="card-body">
+          <p class="font-serif text-sm" style="color: var(--parchment-200); line-height: 1.6;">
+            {{ power_system.energy_source }}
+          </p>
+        </div>
+      </section>
+
+      <!-- Hard Limits -->
+      {% if power_system.hard_limits %}
+      <section class="card mb-lg">
+        <div class="card-header">
+          <h4 class="card-title" style="color: var(--ember-400);">Hard Limits</h4>
+        </div>
+        <div class="card-body">
+          <ul style="list-style: none;">
+            {% for limit in power_system.hard_limits %}
+            <li class="py-sm font-serif text-sm" style="color: var(--parchment-300); {% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+              {% if limit is mapping %}{{ limit.description or limit.name or limit }}{% else %}{{ limit }}{% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Soft Limits -->
+      {% if power_system.soft_limits %}
+      <section class="card mb-lg">
+        <div class="card-header">
+          <h4 class="card-title">Soft Limits</h4>
+        </div>
+        <div class="card-body">
+          <ul style="list-style: none;">
+            {% for limit in power_system.soft_limits %}
+            <li class="py-sm font-serif text-sm" style="color: var(--parchment-300); {% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+              {% if limit is mapping %}{{ limit.description or limit.name or limit }}{% else %}{{ limit }}{% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Advancement Mechanics -->
+      {% if power_system.advancement_mechanics %}
+      <section class="card">
+        <div class="card-header">
+          <h4 class="card-title">Advancement</h4>
+        </div>
+        <div class="card-body">
+          {% for key, value in power_system.advancement_mechanics.items() %}
+          <div class="py-sm" style="{% if not loop.last %}border-bottom: 1px solid var(--border-subtle);{% endif %}">
+            <span class="text-xs text-muted">{{ key | replace('_', ' ') | title }}</span>
+            <p class="font-serif text-sm mt-xs" style="color: var(--parchment-200);">
+              {% if value is mapping %}{% for k, v in value.items() %}<strong>{{ k | replace('_', ' ') | title }}:</strong> {{ v }}{% if not loop.last %}; {% endif %}{% endfor %}{% elif value is iterable and value is not string %}{{ value | join(', ') }}{% else %}{{ value }}{% endif %}
+            </p>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <!-- Empty State -->
+  <div class="card" style="text-align: center; padding: var(--space-3xl) var(--space-xl);">
+    <div style="font-size: 3rem; margin-bottom: var(--space-lg); opacity: 0.5;">&#9889;</div>
+    <h2 class="font-display mb-md" style="color: var(--parchment-200);">No Power System</h2>
+    <p class="font-serif text-muted mb-xl" style="max-width: 28rem; margin: 0 auto var(--space-xl);">
+      This novel's power system has not been defined yet. It will be created during world forging.
+    </p>
+    <a href="/novels/{{ novel.id }}/world" class="btn btn-secondary btn-sm">Back to World</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Create Novel{% endblock %}
+
+{% block head_extra %}
+<style>
+  /* Tag picker */
+  .tag-picker { margin-bottom: var(--space-lg); }
+
+  .tag-counter {
+    font-size: 0.8rem;
+    color: var(--parchment-400);
+    transition: color 0.2s;
+  }
+  .tag-counter.at-limit { color: var(--ember-400); }
+
+  .tag-category-section {
+    border: 1px solid var(--ink-700);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-sm);
+    overflow: hidden;
+  }
+  .tag-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    background: var(--ink-800);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .tag-category-header:hover { background: var(--ink-700); }
+  .tag-category-name {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--parchment-200);
+    text-transform: capitalize;
+  }
+  .tag-category-chevron {
+    font-size: 0.7rem;
+    color: var(--ink-400);
+    transition: transform 0.2s;
+  }
+  .tag-category-section.open .tag-category-chevron { transform: rotate(180deg); }
+  .tag-category-body {
+    display: none;
+    padding: 0.75rem 1rem;
+    background: var(--ink-900);
+  }
+  .tag-category-section.open .tag-category-body { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+  /* Tag pills */
+  .tag-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--ink-600);
+    background: var(--ink-800);
+    color: var(--parchment-300);
+    font-size: 0.8rem;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .tag-pill:hover {
+    border-color: var(--arcane-600);
+    color: var(--parchment-200);
+  }
+  .tag-pill.selected {
+    border-color: var(--arcane-500);
+    background: rgba(107, 69, 184, 0.15);
+    color: var(--arcane-200);
+  }
+  .tag-pill.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* Tooltip */
+  .tag-pill .tag-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink-700);
+    border: 1px solid var(--ink-500);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.65rem;
+    font-size: 0.72rem;
+    color: var(--parchment-200);
+    white-space: nowrap;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .tag-pill:hover .tag-tooltip { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-xl animate-fade-in" style="max-width: 36rem; margin: 0 auto;">
+  <h1 class="mb-lg">Commission Some New Slop</h1>
+
+  {% if limit_hit %}
+  <div class="card mb-xl" style="border-color: var(--arcane-700); text-align: center;">
+    <div class="card-body" style="padding: var(--space-2xl);">
+      <div style="font-size: 3rem; margin-bottom: var(--space-lg);">&#128683;</div>
+      <h2 class="font-display mb-md" style="color: var(--parchment-100);">Free Tier Limit</h2>
+      <p class="font-serif text-muted mb-xl" style="line-height: 1.7;">
+        {{ limit_message }}
+      </p>
+      <div class="flex gap-md justify-center">
+        <a href="/dashboard/settings#api-keys" class="btn btn-primary">Add API Key</a>
+        <a href="/dashboard" class="btn btn-ghost">Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+  {% else %}
+
+  {% if error %}
+  <div class="card mb-lg" style="border-color: var(--ember-400);">
+    <div class="card-body">
+      <p class="text-sm" style="color: var(--ember-400);">{{ error }}</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/novels/new" class="card" id="novel-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="card-body">
+      <div class="mb-lg">
+        <div class="flex justify-between items-center mb-xs">
+          <label for="title" class="text-sm text-muted" style="display: block;">Novel Title</label>
+          <label style="cursor: pointer; user-select: none;">
+            <input type="checkbox" id="auto-title" name="auto_title" value="1"
+                   style="margin-right: 0.4rem; accent-color: var(--arcane-500);"
+                   onchange="toggleAutoTitle(this)">
+            <span class="text-xs" style="color: var(--arcane-300);">Let the AI Hallucinate One</span>
+          </label>
+        </div>
+        <input type="text" id="title" name="title" required
+               minlength="1" maxlength="500"
+               placeholder="The name of your world..."
+               class="form-input"
+               style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100); font-size: 1rem;">
+        <p id="auto-title-hint" class="text-xs mt-xs hidden" style="color: var(--arcane-400);">
+          The title will be hallucinated after your world is generated.
+        </p>
+      </div>
+
+      <div class="mb-lg">
+        <label for="genre" class="text-sm text-muted mb-xs" style="display: block;">Genre</label>
+        <select id="genre" name="genre"
+                class="form-input"
+                style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100); font-size: 1rem;">
+          <option value="progression_fantasy" selected>Progression Fantasy</option>
+          <option value="cultivation">Cultivation</option>
+          <option value="litrpg">LitRPG</option>
+          <option value="isekai">Isekai</option>
+          <option value="epic_fantasy">Epic Fantasy</option>
+          <option value="dark_fantasy">Dark Fantasy</option>
+          <option value="urban_fantasy">Urban Fantasy</option>
+        </select>
+      </div>
+
+      <!-- Tag Picker -->
+      <div class="tag-picker">
+        <div class="flex justify-between items-center mb-xs">
+          <label class="text-sm text-muted" style="display: block;">Tags</label>
+          <span class="tag-counter" id="tag-counter">0 / 10 selected</span>
+        </div>
+        <p class="text-xs mb-sm" style="color: var(--ink-300);">Steer the hallucination. Tags influence what kind of slop comes out.</p>
+
+        {% for category, tags in tag_categories.items() %}
+        <div class="tag-category-section">
+          <div class="tag-category-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="tag-category-name">{{ category.replace('_', ' ') }}</span>
+            <span class="tag-category-chevron">&#9660;</span>
+          </div>
+          <div class="tag-category-body">
+            {% for tag in tags %}
+            <label class="tag-pill" data-slug="{{ tag.slug }}" data-category="{{ tag.category }}">
+              <input type="checkbox" name="tags" value="{{ tag.slug }}"
+                     style="display: none;"
+                     onchange="onTagChange(this)">
+              {{ tag.name }}
+              <span class="tag-tooltip">{{ tag.description }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg w-full">Create Novel</button>
+      {% if plan_type == 'free' %}
+      <p class="text-xs text-muted text-center mt-sm">Free tier: uses Haiku model. 2 worlds max, 3 chapters each.</p>
+      {% endif %}
+    </div>
+  </form>
+
+  <p class="text-center text-muted text-sm mt-lg">
+    <a href="/dashboard" style="color: var(--parchment-400);">Back to Dashboard</a>
+  </p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var TAG_LIMIT = 10;
+var tagCount = 0;
+
+function toggleAutoTitle(checkbox) {
+  var titleInput = document.getElementById('title');
+  var hint = document.getElementById('auto-title-hint');
+  if (checkbox.checked) {
+    titleInput.value = '';
+    titleInput.disabled = true;
+    titleInput.required = false;
+    titleInput.placeholder = 'The AI will hallucinate something...';
+    titleInput.style.opacity = '0.5';
+    titleInput.style.fontStyle = 'italic';
+    hint.classList.remove('hidden');
+  } else {
+    titleInput.disabled = false;
+    titleInput.required = true;
+    titleInput.placeholder = 'The name of your world...';
+    titleInput.style.opacity = '1';
+    titleInput.style.fontStyle = 'normal';
+    hint.classList.add('hidden');
+  }
+}
+
+function updateTagCounter() {
+  var counter = document.getElementById('tag-counter');
+  counter.textContent = tagCount + ' / ' + TAG_LIMIT + ' selected';
+  if (tagCount >= TAG_LIMIT) {
+    counter.classList.add('at-limit');
+  } else {
+    counter.classList.remove('at-limit');
+  }
+
+  // Disable/enable unselected pills when at limit
+  var pills = document.querySelectorAll('.tag-pill');
+  for (var i = 0; i < pills.length; i++) {
+    var cb = pills[i].querySelector('input[type="checkbox"]');
+    if (!cb.checked) {
+      if (tagCount >= TAG_LIMIT) {
+        pills[i].classList.add('disabled');
+        cb.disabled = true;
+      } else {
+        pills[i].classList.remove('disabled');
+        cb.disabled = false;
+      }
+    }
+  }
+}
+
+function onTagChange(cb) {
+  var pill = cb.parentElement;
+  if (cb.checked) {
+    tagCount++;
+    pill.classList.add('selected');
+  } else {
+    tagCount--;
+    pill.classList.remove('selected');
+    pill.classList.remove('disabled');
+    cb.disabled = false;
+  }
+  updateTagCounter();
+}
+</script>
+{% endblock %}

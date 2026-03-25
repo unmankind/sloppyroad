@@ -1,0 +1,79 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# uv lockfile (VK executors auto-generate this)
+uv.lock
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+docker-compose.local.yml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.override.yml
+
+# Node (Tailwind)
+node_modules/
+package-lock.json
+
+# Assets (generated)
+assets/
+vector_store
+vector_store/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Alembic
+alembic/versions/__pycache__/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Logs
+*.log
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/
+output/
+
+# Code intelligence
+.gitnexus
+
+# Claude Code
+.claude/
+
+# Agent metadata (internal tooling)
+AGENTS.md

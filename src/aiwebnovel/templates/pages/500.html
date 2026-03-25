@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}500{% endblock %}
+
+{% block content %}
+<div class="container py-3xl text-center" style="min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+  <h1 class="font-display mb-md" style="font-size: 3rem; color: var(--ember-400); letter-spacing: 0.15em;">
+    500: The AI Had a Meltdown
+  </h1>
+  <p class="font-serif text-lg text-muted mb-2xl" style="max-width: 28rem;">
+    Something broke in the slop machine. The gears are grinding, the pipes are leaking, and at least one language model is having an existential crisis. We're on it.
+  </p>
+  <div class="flex gap-md">
+    <a href="/" class="btn btn-secondary">Return Home</a>
+    <a href="/browse" class="btn btn-primary">Browse the Slop</a>
+  </div>
+</div>
+{% endblock %}
