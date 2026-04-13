@@ -145,7 +145,10 @@ class ChapterValidator:
                 "previously established character knowledge/locations/events."
             )
             # Add genre-specific consistency guidance
-            if genre_config.validation_strategy == "consistency_only" and genre_config.system_analysis_addendum:
+            if (
+                genre_config.validation_strategy == "consistency_only"
+                and genre_config.system_analysis_addendum
+            ):
                 guidance += f"\n\nGenre-specific notes ({genre_config.display_name}):\n"
                 guidance += genre_config.system_analysis_addendum
             lines.append(guidance)

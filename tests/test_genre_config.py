@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 import pytest
 
 from aiwebnovel.llm.prompts import (
@@ -23,7 +21,6 @@ from aiwebnovel.story.genre_config import (
 )
 from aiwebnovel.story.seeds import assemble_genre_conventions, select_seeds
 from aiwebnovel.story.tags import get_tags_for_genre
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # GenreConfig Registry

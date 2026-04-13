@@ -37,8 +37,8 @@ from aiwebnovel.llm.provider import LLMProvider, strip_json_fences
 from aiwebnovel.story.anti_repetition import build_anti_repetition_directives
 from aiwebnovel.story.character_seeder import CharacterSeeder
 from aiwebnovel.story.context import ContextAssembler
-from aiwebnovel.story.pipeline_jobs import PipelineJobManager
 from aiwebnovel.story.genre_config import get_genre_config
+from aiwebnovel.story.pipeline_jobs import PipelineJobManager
 from aiwebnovel.story.seeds import (
     DiversitySeed,
     assemble_genre_conventions,
