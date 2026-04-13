@@ -158,14 +158,11 @@
         <label for="genre" class="text-sm text-muted mb-xs" style="display: block;">Genre</label>
         <select id="genre" name="genre"
                 class="form-input"
+                onchange="onGenreChange(this.value)"
                 style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100); font-size: 1rem;">
-          <option value="progression_fantasy" selected>Progression Fantasy</option>
-          <option value="cultivation">Cultivation</option>
-          <option value="litrpg">LitRPG</option>
-          <option value="isekai">Isekai</option>
-          <option value="epic_fantasy">Epic Fantasy</option>
-          <option value="dark_fantasy">Dark Fantasy</option>
-          <option value="urban_fantasy">Urban Fantasy</option>
+          {% for slug, display_name in genre_choices %}
+          <option value="{{ slug }}" {% if slug == 'progression_fantasy' %}selected{% endif %}>{{ display_name }}</option>
+          {% endfor %}
         </select>
       </div>
 
@@ -185,7 +182,8 @@
           </div>
           <div class="tag-category-body">
             {% for tag in tags %}
-            <label class="tag-pill" data-slug="{{ tag.slug }}" data-category="{{ tag.category }}">
+            <label class="tag-pill" data-slug="{{ tag.slug }}" data-category="{{ tag.category }}"
+                   data-genre-affinity="{{ tag.genre_affinity | join(',') if tag.genre_affinity else '' }}">
               <input type="checkbox" name="tags" value="{{ tag.slug }}"
                      style="display: none;"
                      onchange="onTagChange(this)">
@@ -273,6 +271,33 @@ function onTagChange(cb) {
     pill.classList.remove('selected');
     pill.classList.remove('disabled');
     cb.disabled = false;
+  }
+  updateTagCounter();
+}
+
+function onGenreChange(genre) {
+  // Show/hide tags based on genre affinity
+  var pills = document.querySelectorAll('.tag-pill');
+  for (var i = 0; i < pills.length; i++) {
+    var affinity = pills[i].getAttribute('data-genre-affinity');
+    // Empty affinity = compatible with all genres
+    if (!affinity) {
+      pills[i].style.display = '';
+      continue;
+    }
+    var genres = affinity.split(',');
+    if (genres.indexOf(genre) >= 0) {
+      pills[i].style.display = '';
+    } else {
+      // Hide incompatible tag; uncheck if selected
+      var cb = pills[i].querySelector('input[type="checkbox"]');
+      if (cb.checked) {
+        cb.checked = false;
+        tagCount--;
+        pills[i].classList.remove('selected');
+      }
+      pills[i].style.display = 'none';
+    }
   }
   updateTagCounter();
 }

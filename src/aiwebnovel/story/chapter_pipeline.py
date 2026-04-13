@@ -32,6 +32,7 @@ from aiwebnovel.story.analyzer import ChapterAnalyzer
 from aiwebnovel.story.context import ContextAssembler
 from aiwebnovel.story.extractor import DataExtractor
 from aiwebnovel.story.generator import ChapterGenerator
+from aiwebnovel.story.genre_config import get_genre_config
 from aiwebnovel.story.pipeline_jobs import PipelineJobManager
 from aiwebnovel.story.scene_markers import extract_scene_markers
 from aiwebnovel.story.validator import ChapterValidator
@@ -386,6 +387,14 @@ class ChapterPipelineRunner:
                 # 2. Check budget
                 await self.llm.budget_checker.check_llm_budget(session, novel_id)
 
+                # 2b. Load genre config
+                novel_obj_for_genre = await session.get(Novel, novel_id)
+                novel_genre = (
+                    novel_obj_for_genre.genre
+                    if novel_obj_for_genre else "progression_fantasy"
+                )
+                genre_config = get_genre_config(novel_genre)
+
                 # 3. Ensure arc + chapter plan exist
                 await self.job_manager.update_stage(session, job, "planning")
                 await session.commit()
@@ -428,6 +437,7 @@ class ChapterPipelineRunner:
                     retry_guidance=guidance,
                     gen_ctx=gen_ctx,
                     novel_settings=novel_settings,
+                    genre_label=genre_config.genre_label,
                 )
 
                 # 5b. Extract scene markers, use clean text downstream
@@ -449,11 +459,15 @@ class ChapterPipelineRunner:
                 analysis = await self.analyzer.analyze(
                     session, novel_id, chapter_number, chapter_text, user_id,
                     gen_ctx=gen_ctx,
+                    genre_label=genre_config.genre_label,
+                    genre_validation_addendum=genre_config.system_analysis_addendum,
                 )
                 result["analysis"] = analysis
 
                 # 7. Validate
-                validation = await self.validator.validate(analysis)
+                validation = await self.validator.validate(
+                    analysis, genre=novel_genre,
+                )
                 result["validation"] = validation
 
                 # 8. Revision loop
@@ -480,6 +494,7 @@ class ChapterPipelineRunner:
                         retry_guidance=validation.retry_guidance,
                         gen_ctx=gen_ctx,
                         novel_settings=novel_settings,
+                        genre_label=genre_config.genre_label,
                     )
 
                     # Re-extract scene markers from retry
@@ -497,11 +512,15 @@ class ChapterPipelineRunner:
                     analysis = await self.analyzer.analyze(
                         session, novel_id, chapter_number, chapter_text, user_id,
                         gen_ctx=gen_ctx,
+                        genre_label=genre_config.genre_label,
+                        genre_validation_addendum=genre_config.system_analysis_addendum,
                     )
                     result["analysis"] = analysis
 
                     # Re-validate
-                    validation = await self.validator.validate(analysis)
+                    validation = await self.validator.validate(
+                        analysis, genre=novel_genre,
+                    )
                     result["validation"] = validation
 
                     if not validation.passed:
@@ -652,6 +671,14 @@ class ChapterPipelineRunner:
                 max_draft = count_result.scalar_one() or 0
                 next_draft = max_draft + 1
 
+                # Load genre config
+                novel_for_genre = await session.get(Novel, novel_id)
+                regen_genre = (
+                    novel_for_genre.genre
+                    if novel_for_genre else "progression_fantasy"
+                )
+                regen_genre_config = get_genre_config(regen_genre)
+
                 # Load chapter plan
                 plan_stmt = (
                     select(ChapterPlan)
@@ -685,6 +712,7 @@ class ChapterPipelineRunner:
                     chapter_number,
                     retry_guidance=guidance,
                     novel_settings=novel_settings,
+                    genre_label=regen_genre_config.genre_label,
                 )
 
                 # Save draft

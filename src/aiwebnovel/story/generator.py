@@ -35,6 +35,7 @@ class ChapterGenerator:
         chapter_plan: Any,
         chapter_number: int,
         novel_settings: Any | None = None,
+        genre_label: str = "progression fantasy",
     ) -> dict[str, str]:
         """Build template context dict from AssembledContext and chapter plan."""
         sections = context.sections
@@ -50,6 +51,7 @@ class ChapterGenerator:
             full_world = world_building or world_state
 
         return {
+            "genre_label": genre_label,
             "chapter_number": str(chapter_number),
             "chapter_title": getattr(chapter_plan, "title", None) or f"Chapter {chapter_number}",
             "world_context": full_world,
@@ -115,10 +117,12 @@ class ChapterGenerator:
         retry_guidance: str | None = None,
         gen_ctx: GenerationContext | None = None,
         novel_settings: Any | None = None,
+        genre_label: str = "progression fantasy",
     ) -> str:
         """Generate chapter text via LLM. Returns the raw prose."""
         prompt_ctx = self._build_prompt_context(
             context, chapter_plan, chapter_number, novel_settings,
+            genre_label=genre_label,
         )
 
         system, user = CHAPTER_GENERATION.render(**prompt_ctx)
@@ -172,10 +176,12 @@ class ChapterGenerator:
         chapter_number: int = 1,
         publish_callback: Callable[[str], Any] | None = None,
         novel_settings: Any | None = None,
+        genre_label: str = "progression fantasy",
     ) -> str:
         """Stream chapter generation, calling publish_callback with each token."""
         prompt_ctx = self._build_prompt_context(
             context, chapter_plan, chapter_number, novel_settings,
+            genre_label=genre_label,
         )
 
         system, user = CHAPTER_GENERATION.render(**prompt_ctx)

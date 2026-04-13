@@ -2314,3 +2314,20 @@ small, .text-sm { font-size: 0.875rem; }
   margin-bottom: var(--space-xs);
 }
 .ml-xs { margin-left: var(--space-xs); }
+
+/* ═══════════════════════════════════════════
+   Genre color accents
+   ═══════════════════════════════════════════ */
+.genre-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.genre-progression_fantasy { background: rgba(107, 69, 184, 0.2); color: #b89cf7; border: 1px solid rgba(107, 69, 184, 0.4); }
+.genre-epic_fantasy        { background: rgba(59, 130, 246, 0.2); color: #93bbfd; border: 1px solid rgba(59, 130, 246, 0.4); }
+.genre-sci_fi              { background: rgba(6, 182, 212, 0.2);  color: #67e8f9; border: 1px solid rgba(6, 182, 212, 0.4); }
+.genre-romantasy           { background: rgba(244, 63, 94, 0.2);  color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.4); }

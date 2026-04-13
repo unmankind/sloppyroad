@@ -54,13 +54,18 @@ class PromptTemplate:
         Missing context keys are replaced with empty strings to prevent
         KeyError during optional-section rendering.
         """
+        import re
+
+        system = self.system_prompt
         user = self.user_template
         for key, value in context.items():
-            user = user.replace("{" + key + "}", str(value))
+            placeholder = "{" + key + "}"
+            system = system.replace(placeholder, str(value))
+            user = user.replace(placeholder, str(value))
         # Replace any remaining placeholders with empty string
-        import re
+        system = re.sub(r"\{[a-z_]+\}", "", system)
         user = re.sub(r"\{[a-z_]+\}", "", user)
-        return self.system_prompt, user
+        return system, user
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +73,7 @@ class PromptTemplate:
 # ---------------------------------------------------------------------------
 
 _WORLD_BUILDER_SYSTEM = (
-    "You are a world-builder specialising in progression fantasy. "
+    "You are a world-builder specialising in {genre_label}. "
     "Be concise: use 1-2 sentences per field unless the prompt specifies otherwise. "
     "Focus on what makes this world unique — skip generic fantasy filler. "
     "Respond ONLY with valid JSON. No markdown, no code fences, no commentary — "
@@ -105,7 +110,7 @@ COSMOLOGY = PromptTemplate(
     name="cosmology",
     system_prompt=_WORLD_BUILDER_SYSTEM,
     user_template=(
-        "Given that this is a progression fantasy novel, design the cosmology "
+        "Given that this is a {genre_label} novel, design the cosmology "
         "and metaphysics of this world.\n\n"
         "{novel_title_context}"
         "Genre conventions to respect:\n{genre_conventions}\n\n"
@@ -140,7 +145,7 @@ POWER_SYSTEM = PromptTemplate(
     name="power_system",
     system_prompt=_WORLD_BUILDER_SYSTEM,
     user_template=(
-        "You are building the power/magic system for a progression fantasy novel.\n\n"
+        "You are building the power/magic system for a {genre_label} novel.\n\n"
         "{novel_title_context}"
         "Here is the established cosmology:\n{prior_context}\n\n"
         "Genre conventions:\n{genre_conventions}\n\n"
@@ -177,7 +182,7 @@ GEOGRAPHY = PromptTemplate(
     name="geography",
     system_prompt=_WORLD_BUILDER_SYSTEM,
     user_template=(
-        "Design the STARTING REGION for this progression fantasy world — where the "
+        "Design the STARTING REGION for this {genre_label} world — where the "
         "protagonist begins their journey. Use a 'fog of war' approach: detail the "
         "immediate setting richly, sketch neighboring areas briefly, and leave distant "
         "regions as named stubs to be expanded when the story needs them.\n\n"
@@ -208,7 +213,7 @@ HISTORY = PromptTemplate(
     name="history",
     system_prompt=_WORLD_BUILDER_SYSTEM,
     user_template=(
-        "Design the history of this progression fantasy world. Focus on 3-5 eras "
+        "Design the history of this {genre_label} world. Focus on 3-5 eras "
         "with the most narrative relevance — what shaped the current conflicts and "
         "what mysteries might the protagonist uncover?\n\n"
         "{novel_title_context}"
@@ -256,7 +261,7 @@ PROTAGONIST = PromptTemplate(
     name="protagonist",
     system_prompt=_WORLD_BUILDER_SYSTEM,
     user_template=(
-        "Design the protagonist for this progression fantasy novel.\n\n"
+        "Design the protagonist for this {genre_label} novel.\n\n"
         "{novel_title_context}"
         "{character_identities}\n\n"
         "Established world:\n{prior_context}\n\n"
@@ -295,7 +300,7 @@ ANTAGONISTS = PromptTemplate(
     name="antagonists",
     system_prompt=_WORLD_BUILDER_SYSTEM,
     user_template=(
-        "Design the antagonists for this progression fantasy novel.\n\n"
+        "Design the antagonists for this {genre_label} novel.\n\n"
         "{novel_title_context}"
         "{character_identities}\n\n"
         "Established world and protagonist:\n{prior_context}\n\n"
@@ -321,7 +326,7 @@ SUPPORTING_CAST = PromptTemplate(
     name="supporting_cast",
     system_prompt=_WORLD_BUILDER_SYSTEM,
     user_template=(
-        "Design the supporting cast for this progression fantasy novel.\n\n"
+        "Design the supporting cast for this {genre_label} novel.\n\n"
         "{novel_title_context}"
         "{character_identities}\n\n"
         "Established world, protagonist, and antagonists:\n{prior_context}\n\n"
@@ -355,7 +360,7 @@ NOVEL_TITLE = PromptTemplate(
         "Respond with ONLY the title — no quotes, no punctuation, no explanation."
     ),
     user_template=(
-        "Generate a compelling, evocative title for a progression fantasy novel "
+        "Generate a compelling, evocative title for a {genre_label} novel "
         "set in this world.\n\n"
         "WORLD SUMMARY:\n{world_summary}\n\n"
         "CREATIVE IDENTITY (what makes this world unique):\n{creative_identity}\n\n"
@@ -394,7 +399,7 @@ NOVEL_SYNOPSIS = PromptTemplate(
         "Respond with ONLY the synopsis text — no headings, no labels, no preamble."
     ),
     user_template=(
-        "Write a back-cover hook for this progression fantasy novel. "
+        "Write a back-cover hook for this {genre_label} novel. "
         "Two short paragraphs. 100-150 words MAX.\n\n"
         "PROTAGONIST:\n{protagonist_summary}\n\n"
         "WORLD & CONFLICT (reference only — do NOT regurgitate):\n"
@@ -430,7 +435,7 @@ NOVEL_SYNOPSIS = PromptTemplate(
 ARC_PLANNING = PromptTemplate(
     name="arc_planning",
     system_prompt=(
-        "You are the narrative architect for a progression fantasy serial novel. Your "
+        "You are the narrative architect for a {genre_label} serial novel. Your "
         "job is to plan multi-chapter story arcs that deliver compelling, escalating "
         "narrative with earned character growth, coherent plot threads, and satisfying "
         "payoffs.\n\n"
@@ -580,7 +585,7 @@ PLOT_THREAD_EXTRACTION = PromptTemplate(
 CHAPTER_GENERATION = PromptTemplate(
     name="chapter_generation",
     system_prompt=(
-        "You are a master storyteller writing a progression fantasy serial novel. "
+        "You are a master storyteller writing a {genre_label} serial novel. "
         "Your prose should be immersive, vivid, and propulsive. Each chapter must "
         "feel like a complete reading experience while advancing the larger story.\n\n"
         "WRITING PRINCIPLES:\n"
@@ -655,7 +660,7 @@ CHAPTER_GENERATION = PromptTemplate(
 NARRATIVE_ANALYSIS = PromptTemplate(
     name="narrative_analysis",
     system_prompt=(
-        "You are a narrative analyst for a progression fantasy serial novel. You "
+        "You are a narrative analyst for a {genre_label} serial novel. You "
         "extract structured information from a chapter: what happened, how the "
         "tension moved, what narrative promises were made or paid off, and what "
         "facts should be recorded in the story bible.\n\n"
@@ -699,7 +704,7 @@ NARRATIVE_ANALYSIS = PromptTemplate(
 SYSTEM_ANALYSIS = PromptTemplate(
     name="system_analysis",
     system_prompt=(
-        "You are a continuity and rules enforcer for a progression fantasy novel. "
+        "You are a continuity and rules enforcer for a {genre_label} novel. "
         "You check whether a chapter respects the power system rules, the story "
         "bible, and the Chekhov gun lifecycle. You also score any power advancement "
         "events using the 4-rule Earned Power framework (Struggle, Foundation, Cost, "
@@ -743,6 +748,7 @@ SYSTEM_ANALYSIS = PromptTemplate(
         "resolution_description, subversion_description.\n"
         "6. has_critical_violations: true if any critical consistency issue or any "
         "earned power evaluation has approved=false.\n\n"
+        "{genre_validation_addendum}\n\n"
         "Return JSON matching SystemAnalysisResult."
     ),
     response_parser=SystemAnalysisResult,
@@ -760,7 +766,7 @@ SYSTEM_ANALYSIS = PromptTemplate(
 STANDARD_SUMMARY = PromptTemplate(
     name="standard_summary",
     system_prompt=(
-        "You are a concise narrative summariser for a progression fantasy serial. "
+        "You are a concise narrative summariser for a {genre_label} serial. "
         "Produce a ~300-token summary capturing key events, emotional arc, and "
         "any cliffhangers. Output valid JSON only."
     ),
@@ -784,7 +790,7 @@ ARC_SUMMARY = PromptTemplate(
     name="arc_summary",
     system_prompt=(
         "You are creating a meta-summary of a completed story arc in a "
-        "progression fantasy serial. Capture the arc's overall narrative movement, "
+        "{genre_label} serial. Capture the arc's overall narrative movement, "
         "character growth, and narrative promises. Output valid JSON only."
     ),
     user_template=(
@@ -852,7 +858,7 @@ ENHANCED_RECAP = PromptTemplate(
 FINAL_ARC_PLANNING = PromptTemplate(
     name="final_arc_planning",
     system_prompt=(
-        "You are planning the FINAL ARC of a progression fantasy serial novel. "
+        "You are planning the FINAL ARC of a {genre_label} serial novel. "
         "This is the culmination of everything. Every open plot thread, every "
         "Chekhov gun, every character arc must be resolved. The story must reach "
         "a satisfying conclusion.\n\n"

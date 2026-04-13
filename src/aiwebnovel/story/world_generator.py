@@ -38,6 +38,7 @@ from aiwebnovel.story.anti_repetition import build_anti_repetition_directives
 from aiwebnovel.story.character_seeder import CharacterSeeder
 from aiwebnovel.story.context import ContextAssembler
 from aiwebnovel.story.pipeline_jobs import PipelineJobManager
+from aiwebnovel.story.genre_config import get_genre_config
 from aiwebnovel.story.seeds import (
     DiversitySeed,
     assemble_genre_conventions,
@@ -114,6 +115,7 @@ class WorldGenerator:
         character_identities: str = "",
         novel_title_context: str = "",
         gen_ctx: Any | None = None,
+        genre_label: str = "progression fantasy",
     ) -> tuple[str, int, Any, dict, int, str]:
         """Run a single world-building stage.
 
@@ -124,6 +126,7 @@ class WorldGenerator:
             genre_conventions=genre_conventions,
             character_identities=character_identities,
             novel_title_context=novel_title_context,
+            genre_label=genre_label,
         )
 
         # Pass BYOK key if available
@@ -254,12 +257,17 @@ class WorldGenerator:
             # Build anti-repetition directives from prior novels
             anti_rep = await build_anti_repetition_directives(session, novel_id)
 
+            # Load genre from novel
+            novel_genre = novel.genre if novel else "progression_fantasy"
+            genre_config = get_genre_config(novel_genre)
+
             # Assemble the full conventions string
             genre_conventions = assemble_genre_conventions(
                 author_tags=author_tags,
                 selected_seeds=seeds,
                 custom_conventions=custom_conventions,
                 anti_repetition=anti_rep,
+                genre=novel_genre,
             )
 
             logger.info(
@@ -381,6 +389,7 @@ class WorldGenerator:
                             ),
                             novel_title_context=novel_title_context,
                             gen_ctx=gen_ctx,
+                            genre_label=genre_config.genre_label,
                         )
                         for stage_name, template, stage_order in wave
                     ]

@@ -7,7 +7,7 @@ for novel discovery and browsing.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,8 @@ class TagDefinition:
     category: str  # "subgenre", "setting", "tone", etc.
     description: str  # Tooltip for UI
     genre_directive: str  # Injected into prompts when this tag is active
+    # Genre slugs this tag is compatible with. Empty = all genres.
+    genre_affinity: frozenset[str] = field(default_factory=frozenset)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -37,6 +39,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "world and carries foreign knowledge, cultural assumptions, and possibly "
             "anachronistic skills. The tension between their origin-world understanding "
             "and the new world's rules is a core narrative driver.",
+            genre_affinity=frozenset({"progression_fantasy", "epic_fantasy", "romantasy"}),
         ),
         TagDefinition(
             "Reincarnation", "reincarnation", "subgenre",
@@ -45,6 +48,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "previous life. The gap between knowledge and power drives tension — they "
             "know what's coming but lack the strength to change it. Past regrets "
             "inform present choices.",
+            genre_affinity=frozenset({"progression_fantasy", "epic_fantasy", "romantasy"}),
         ),
         TagDefinition(
             "System Apocalypse", "system_apocalypse", "subgenre",
@@ -53,6 +57,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "on reality: status screens, level notifications, skill acquisitions, and "
             "dungeon instances are physical facts, not metaphors. Society is being "
             "rebuilt around these new rules.",
+            genre_affinity=frozenset({"progression_fantasy"}),
         ),
         TagDefinition(
             "Cultivation", "cultivation", "subgenre",
@@ -61,6 +66,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "energy circulation, body refinement, and philosophical insight. Sects, "
             "lineages, and master-disciple relationships matter. Pills, formations, "
             "tribulations, and heavenly dao are real elements of the world.",
+            genre_affinity=frozenset({"progression_fantasy"}),
         ),
         TagDefinition(
             "LitRPG", "litrpg", "subgenre",
@@ -69,6 +75,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "game mechanics: numerical stats, skill trees, experience points, loot "
             "tables, and class systems. Characters are aware of and discuss these "
             "mechanics. Include stat blocks where narratively appropriate.",
+            genre_affinity=frozenset({"progression_fantasy"}),
         ),
         TagDefinition(
             "Dungeon Core", "dungeon_core", "subgenre",
@@ -77,6 +84,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "deeply bonded to one. Power growth means designing floors, spawning "
             "monsters, creating traps, and absorbing the essence of delvers. "
             "The perspective is fundamentally non-human or partially so.",
+            genre_affinity=frozenset({"progression_fantasy"}),
         ),
         TagDefinition(
             "Tower Climbing", "tower_climbing", "subgenre",
@@ -85,6 +93,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "the world. Each floor is its own environment with unique rules. "
             "Ascending is the primary axis of progression. Climbers form parties, "
             "compete, and die on the stairs between worlds.",
+            genre_affinity=frozenset({"progression_fantasy"}),
         ),
         TagDefinition(
             "Everyday Ascendancy", "everyday_ascendancy", "subgenre",
@@ -93,6 +102,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "through mastery of something mundane: cooking, gardening, pottery, "
             "bookkeeping, cleaning, or another ordinary craft. The magic system "
             "integrates and elevates this mundane skill into something cosmic.",
+            genre_affinity=frozenset({"progression_fantasy", "romantasy"}),
         ),
         TagDefinition(
             "Academy", "academy", "subgenre",
@@ -109,6 +119,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "creature that grows by consuming, fighting, or evolving. They gain "
             "new forms, abilities, and eventually sapience or higher intelligence. "
             "The world is experienced from a fundamentally inhuman perspective.",
+            genre_affinity=frozenset({"progression_fantasy"}),
         ),
         TagDefinition(
             "Regression", "regression", "subgenre",
@@ -117,6 +128,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "earlier point in their life with knowledge of the future. They must "
             "navigate the tension between foreknowledge and changed circumstances. "
             "Butterfly effects mean the future they remember is not guaranteed.",
+            genre_affinity=frozenset({"progression_fantasy"}),
         ),
         TagDefinition(
             "Base Builder", "base_builder", "subgenre",
@@ -125,6 +137,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "a settlement, territory, guild, or faction. Resource management, "
             "recruitment, defense, and expansion are core progression axes alongside "
             "personal power growth.",
+            genre_affinity=frozenset({"progression_fantasy", "sci_fi"}),
         ),
         TagDefinition(
             "Summoner", "summoner", "subgenre",
@@ -133,6 +146,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "through bound, contracted, or tamed entities. Personal power grows by "
             "acquiring, strengthening, and synergizing summons rather than direct "
             "physical or magical combat.",
+            genre_affinity=frozenset({"progression_fantasy", "epic_fantasy"}),
         ),
         TagDefinition(
             "Healer", "healer", "subgenre",
@@ -149,6 +163,7 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "through creating things: weapons, armor, potions, formations, "
             "constructs, or other artifacts. The creative process IS the cultivation. "
             "Combat exists but is secondary to the forge/workshop/laboratory.",
+            genre_affinity=frozenset({"progression_fantasy", "epic_fantasy"}),
         ),
     ],
 
@@ -633,6 +648,22 @@ ALL_TAG_NAMES: dict[str, TagDefinition] = {
 def validate_tags(tag_slugs: list[str]) -> list[str]:
     """Return list of invalid tag slugs. Empty list means all valid."""
     return [s for s in tag_slugs if s not in ALL_TAGS]
+
+
+def get_tags_for_genre(genre: str) -> dict[str, list[TagDefinition]]:
+    """Return TAG_CATEGORIES filtered to tags compatible with the given genre.
+
+    Tags with empty genre_affinity are compatible with all genres.
+    """
+    result: dict[str, list[TagDefinition]] = {}
+    for category, tags in TAG_CATEGORIES.items():
+        filtered = [
+            t for t in tags
+            if not t.genre_affinity or genre in t.genre_affinity
+        ]
+        if filtered:
+            result[category] = filtered
+    return result
 
 
 def get_tag_directives(tag_slugs: list[str]) -> str:

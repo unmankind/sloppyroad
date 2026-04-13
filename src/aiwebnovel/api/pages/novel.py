@@ -69,6 +69,7 @@ async def novel_new_page(
     error: Optional[str] = Query(None),
 ):
     """Render the 'create novel' form."""
+    from aiwebnovel.story.genre_config import get_all_genre_choices
     from aiwebnovel.story.tags import TAG_CATEGORIES
 
     ctx = await _base_context(request, db)
@@ -76,6 +77,7 @@ async def novel_new_page(
         return RedirectResponse("/auth/login", status_code=303)
     ctx["error"] = error
     ctx["tag_categories"] = TAG_CATEGORIES
+    ctx["genre_choices"] = get_all_genre_choices()
 
     # Check if free tier user is at world limit
     if ctx.get("plan_type") == "free":

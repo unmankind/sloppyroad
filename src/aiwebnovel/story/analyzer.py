@@ -72,6 +72,8 @@ class ChapterAnalyzer:
         chapter_text: str,
         user_id: int = 0,
         gen_ctx: GenerationContext | None = None,
+        genre_label: str = "progression fantasy",
+        genre_validation_addendum: str = "",
     ) -> AnalysisResult:
         """Run narrative + system analysis concurrently.
 
@@ -87,6 +89,12 @@ class ChapterAnalyzer:
         system_ctx = await self._build_system_context(
             session, novel_id, chapter_number, chapter_text,
         )
+
+        # Inject genre_label into contexts for prompt rendering
+        narrative_ctx["genre_label"] = genre_label
+        system_ctx["genre_label"] = genre_label
+        if genre_validation_addendum:
+            system_ctx["genre_validation_addendum"] = genre_validation_addendum
 
         # Run both analyses concurrently
         narrative_task = self._run_narrative_analysis(

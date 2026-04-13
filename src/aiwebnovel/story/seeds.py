@@ -31,6 +31,8 @@ class DiversitySeed:
     compatible_tags: frozenset[str] = field(default_factory=frozenset)
     incompatible_tags: frozenset[str] = field(default_factory=frozenset)
     weight: float = 1.0
+    # Genre slugs this seed is compatible with. Empty = all genres.
+    genre_affinity: frozenset[str] = field(default_factory=frozenset)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1449,6 +1451,7 @@ def select_seeds(
     num_seeds: int = 4,
     exclude_seeds: set[str] | None = None,
     rng: random.Random | None = None,
+    genre: str = "progression_fantasy",
 ) -> list[DiversitySeed]:
     """Select diversity seeds weighted by author tag compatibility.
 
@@ -1461,18 +1464,27 @@ def select_seeds(
     When no tags are provided, selection is purely random across categories
     for maximum diversity.
     """
+    from aiwebnovel.story.genre_config import get_genre_config
+
     if rng is None:
         rng = random.Random()
     if exclude_seeds is None:
         exclude_seeds = set()
 
     tag_set = set(author_tags)
+    genre_config = get_genre_config(genre)
 
     # Score all seeds
     scored: list[tuple[float, DiversitySeed]] = []
-    for category_seeds in SEED_BANK.values():
+    for category_name, category_seeds in SEED_BANK.items():
+        # Skip entire categories incompatible with this genre
+        if category_name in genre_config.incompatible_seed_categories:
+            continue
         for seed in category_seeds:
             if seed.id in exclude_seeds:
+                continue
+            # Exclude if seed has genre_affinity and this genre isn't in it
+            if seed.genre_affinity and genre not in seed.genre_affinity:
                 continue
             # Exclude if any author tag is in the seed's incompatible set
             if tag_set & seed.incompatible_tags:
@@ -1562,22 +1574,26 @@ def assemble_genre_conventions(
     selected_seeds: list[DiversitySeed],
     custom_conventions: str | None = None,
     anti_repetition: str = "",
+    genre: str = "progression_fantasy",
 ) -> str:
     """Combine all diversity sources into a single genre_conventions string.
 
     This replaces the old hardcoded _GENRE_CONVENTIONS everywhere.
 
     Structure:
-    - Core progression fantasy conventions (always present)
+    - Core genre conventions (from GenreConfig, or BASE_GENRE_CONVENTIONS fallback)
     - Story identity from author tags (if any)
     - Creative constraints from diversity seeds (always present)
     - Author custom conventions (if any)
     - Anti-repetition directives (if any)
     """
+    from aiwebnovel.story.genre_config import get_genre_config
+
+    genre_config = get_genre_config(genre)
     sections: list[str] = []
 
-    # 1. Core conventions — always present
-    sections.append(f"=== CORE GENRE CONVENTIONS ===\n{BASE_GENRE_CONVENTIONS}")
+    # 1. Core conventions — genre-specific
+    sections.append(f"=== CORE GENRE CONVENTIONS ===\n{genre_config.base_conventions}")
 
     # 2. Tag directives
     if author_tags:
