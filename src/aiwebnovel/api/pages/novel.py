@@ -54,6 +54,8 @@ ALLOWED_GENRES = {
     "epic_fantasy",
     "dark_fantasy",
     "urban_fantasy",
+    "sci_fi",
+    "romantasy",
 }
 
 

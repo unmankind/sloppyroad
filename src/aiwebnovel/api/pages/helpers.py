@@ -302,8 +302,11 @@ def _novel_view(
     else:
         effective_status = raw_status
 
-    # Format tags — replace underscores, title case
-    tags = [novel.genre.replace("_", " ").title()] if novel.genre else []
+    # Format tags — use GenreConfig display name for the genre badge
+    from aiwebnovel.story.genre_config import get_genre_config
+
+    genre_cfg = get_genre_config(novel.genre) if novel.genre else None
+    tags = [genre_cfg.display_name] if genre_cfg else []
 
     return {
         "id": novel.id,
