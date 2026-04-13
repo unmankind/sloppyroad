@@ -37,7 +37,7 @@ from aiwebnovel.llm.provider import LLMProvider, strip_json_fences
 from aiwebnovel.story.anti_repetition import build_anti_repetition_directives
 from aiwebnovel.story.character_seeder import CharacterSeeder
 from aiwebnovel.story.context import ContextAssembler
-from aiwebnovel.story.genre_config import get_genre_config
+from aiwebnovel.story.genre_config import StageOverride, get_genre_config
 from aiwebnovel.story.pipeline_jobs import PipelineJobManager
 from aiwebnovel.story.seeds import (
     DiversitySeed,
@@ -116,6 +116,7 @@ class WorldGenerator:
         novel_title_context: str = "",
         gen_ctx: Any | None = None,
         genre_label: str = "progression fantasy",
+        stage_override: StageOverride | None = None,
     ) -> tuple[str, int, Any, dict, int, str]:
         """Run a single world-building stage.
 
@@ -128,6 +129,16 @@ class WorldGenerator:
             novel_title_context=novel_title_context,
             genre_label=genre_label,
         )
+
+        # Apply genre-specific stage overrides
+        if stage_override:
+            if stage_override.preamble:
+                # Replace the first line of the user prompt with
+                # genre-specific preamble (e.g. "magic system" not
+                # "power/magic system for a progression fantasy novel")
+                user = stage_override.preamble + user
+            if stage_override.addendum:
+                user += "\n\n" + stage_override.addendum
 
         # Pass BYOK key if available
         llm_kwargs: dict[str, Any] = {}
@@ -390,6 +401,9 @@ class WorldGenerator:
                             novel_title_context=novel_title_context,
                             gen_ctx=gen_ctx,
                             genre_label=genre_config.genre_label,
+                            stage_override=genre_config.stage_overrides.get(
+                                stage_name,
+                            ),
                         )
                         for stage_name, template, stage_order in wave
                     ]
