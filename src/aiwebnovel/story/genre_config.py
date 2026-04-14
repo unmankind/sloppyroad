@@ -372,52 +372,68 @@ _ROMANTASY = GenreConfig(
     stage_overrides={
         "cosmology": StageOverride(
             addendum=(
-                "Weave emotional resonance into the cosmology. Perhaps magic responds "
-                "to emotional bonds, oaths carry metaphysical weight, or cosmic forces "
-                "mirror the spectrum of human connection. Fate and choice should coexist "
-                "in productive tension."
+                "The cosmology should create conditions for romantic tension. "
+                "Consider: oaths or bonds that carry metaphysical weight, cosmic "
+                "forces that reflect or interfere with mortal connections, prophecies "
+                "about destined pairings (whether true or manipulative), or magic "
+                "that reacts to proximity, trust, or betrayal between specific "
+                "people. Fate and choice should coexist in productive tension."
             ),
         ),
         "power_system": StageOverride(
             addendum=(
-                "The magic system should have an emotional dimension: bonds between "
-                "people amplify power, emotional honesty unlocks ability, or magic "
-                "responds to relational dynamics. This is NOT 'power of love conquers "
-                "all' — it's a system where emotional reality has mechanical weight. "
-                "Include costs tied to vulnerability and trust."
+                "The magic system should create ROMANTIC TENSION through one of "
+                "these patterns (pick the most interesting for this world):\n"
+                "- EMOTIONAL RESONANCE: Magic responds to emotional bonds — "
+                "vulnerability unlocks power, trust amplifies it, dishonesty "
+                "weakens it\n"
+                "- COMPLEMENTARY SYSTEMS: The romantic leads practice fundamentally "
+                "different traditions that combine in unexpected ways together\n"
+                "- POWER DISPARITY: One lead is vastly more powerful — the gap "
+                "creates tension, dependency, and questions of equality\n"
+                "- FORBIDDEN PAIRING: Their magic types are antagonistic or taboo "
+                "when combined — proximity is dangerous, separation is safe but "
+                "unbearable\n"
+                "- SHARED BOND: A magical link (curse, ritual, accident) connects "
+                "them — proximity has mechanical effects they didn't choose\n"
+                "- INDEPENDENT AXES: Magic and romance are entirely separate — "
+                "love doesn't power anything, it just complicates everything\n\n"
+                "Whatever pattern you choose, the magic should create reasons for "
+                "the leads to be drawn together AND reasons to stay apart."
             ),
         ),
         "geography": StageOverride(
             addendum=(
-                "Include locations that serve romantic narrative: courts and ballrooms "
-                "for political tension, gardens and private spaces for intimate moments, "
-                "dangerous wilderness that forces proximity, estates or territories "
-                "that create obligation. The setting should enable and constrain the "
-                "romantic dynamic."
+                "Include locations that serve romantic narrative: courts and "
+                "ballrooms for political tension, gardens and private spaces for "
+                "intimate moments, dangerous wilderness that forces proximity, "
+                "estates or territories that create obligation. The setting should "
+                "enable and constrain the romantic dynamic."
             ),
         ),
         "protagonist": StageOverride(
             addendum=(
-                "The protagonist should have emotional walls, past wounds, or trust "
-                "issues that create romantic tension. Their vulnerability is as "
-                "important as their strength. Give them a reason to resist the "
-                "romantic connection AND a reason they can't fully walk away from it."
+                "The protagonist should have emotional walls, past wounds, or "
+                "trust issues that create romantic tension. Their vulnerability "
+                "is as important as their strength. Give them a reason to resist "
+                "the romantic connection AND a reason they can't fully walk away "
+                "from it."
             ),
         ),
         "antagonists": StageOverride(
             addendum=(
                 "At least one antagonist should create romantic tension: a rival "
-                "for the love interest's attention, a political match that threatens "
-                "the relationship, or a villain whose connection to a lead adds "
-                "emotional complexity. Not all threats are physical."
+                "for the love interest's attention, a political match that "
+                "threatens the relationship, or a villain whose connection to a "
+                "lead adds emotional complexity. Not all threats are physical."
             ),
         ),
         "supporting_cast": StageOverride(
             addendum=(
-                "Include at least one confidant character who serves as a sounding "
-                "board for the protagonist's emotional life. Include a romantic foil "
-                "or contrasting relationship that highlights what makes the central "
-                "romance unique."
+                "Include at least one confidant character who serves as a "
+                "sounding board for the protagonist's emotional life. Include a "
+                "romantic foil or contrasting relationship that highlights what "
+                "makes the central romance unique."
             ),
         ),
     },

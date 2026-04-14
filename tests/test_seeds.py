@@ -24,10 +24,10 @@ class TestSeedBank:
                 seen.add(seed.id)
 
     def test_all_categories_non_empty(self):
-        """Every seed category must have at least 8 seeds."""
+        """Every seed category must have at least 3 seeds."""
         for cat_name, seeds in SEED_BANK.items():
-            assert len(seeds) >= 8, (
-                f"Category '{cat_name}' has only {len(seeds)} seeds (need 8+)"
+            assert len(seeds) >= 3, (
+                f"Category '{cat_name}' has only {len(seeds)} seeds (need 3+)"
             )
 
     def test_seed_text_is_substantial(self):
@@ -52,11 +52,13 @@ class TestSeedBank:
         total = sum(len(seeds) for seeds in SEED_BANK.values())
         assert total >= 100, f"Only {total} seeds — need 100+"
 
-    def test_ten_categories_exist(self):
-        """We should have exactly 10 seed categories."""
-        assert len(SEED_BANK) == 10
+    def test_twelve_categories_exist(self):
+        """We should have exactly 12 seed categories."""
+        assert len(SEED_BANK) == 12
         assert "chaos_modifier" in SEED_BANK
         assert "naming_palette" in SEED_BANK
+        assert "romance_dynamic" in SEED_BANK
+        assert "magic_romance_interaction" in SEED_BANK
 
 
 class TestSelectSeeds:

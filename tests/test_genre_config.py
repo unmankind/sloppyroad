@@ -285,14 +285,15 @@ class TestSeedGenreFiltering:
 class TestTagGenreFiltering:
     """Tests for get_tags_for_genre."""
 
-    def test_progression_fantasy_gets_all_tags(self):
-        """Prog fantasy should get all tags (it's the broadest genre)."""
-        from aiwebnovel.story.tags import TAG_CATEGORIES
-
+    def test_progression_fantasy_gets_universal_and_own_tags(self):
+        """Prog fantasy should get all universal tags plus its own affinity tags."""
         prog_tags = get_tags_for_genre("progression_fantasy")
-        total_prog = sum(len(t) for t in prog_tags.values())
-        total_all = sum(len(t) for t in TAG_CATEGORIES.values())
-        assert total_prog == total_all
+        all_slugs = [t.slug for tags in prog_tags.values() for t in tags]
+        # Should have universal tags
+        assert "dark" in all_slugs
+        # Should NOT have romantasy-only relationship tags
+        assert "enemies_to_lovers" not in all_slugs
+        assert "slow_burn_romance" not in all_slugs
 
     def test_sci_fi_excludes_cultivation(self):
         sci_fi_tags = get_tags_for_genre("sci_fi")

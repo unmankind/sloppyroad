@@ -625,6 +625,99 @@ TAG_CATEGORIES: dict[str, list[TagDefinition]] = {
             "propelled forward at all times.",
         ),
     ],
+
+    # ------------------------------------------------------------------
+    # Relationship type — romantic dynamic (primarily romantasy)
+    # ------------------------------------------------------------------
+    "relationship_type": [
+        TagDefinition(
+            "M/F Romance", "mf_romance", "relationship_type",
+            "Male/female central romance",
+            "The central romance is between a man and a woman. Write their "
+            "dynamic with emotional depth — the pairing is classic but the "
+            "relationship should feel specific to these characters.",
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        TagDefinition(
+            "M/M Romance", "mm_romance", "relationship_type",
+            "Male/male central romance",
+            "The central romance is between two men. Write with authenticity "
+            "and emotional depth, not fetishization. Their masculinity and "
+            "vulnerability coexist naturally.",
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        TagDefinition(
+            "F/F Romance", "ff_romance", "relationship_type",
+            "Female/female central romance",
+            "The central romance is between two women. Write with authenticity "
+            "and emotional depth, not fetishization. Their dynamic should feel "
+            "genuine and specific to these characters.",
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        TagDefinition(
+            "Polyamorous", "polyamorous", "relationship_type",
+            "Multiple romantic relationships with mutual knowledge",
+            "Multiple romantic relationships develop with the knowledge and "
+            "consent of all parties. Each relationship has distinct dynamics, "
+            "tensions, and joys. This is NOT a harem — all partners have "
+            "agency and the arrangement is negotiated, not collected.",
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        TagDefinition(
+            "Interspecies Romance", "interspecies_romance", "relationship_type",
+            "Romance crossing species boundaries",
+            "The central romance crosses species boundaries. Lean into the "
+            "genuine alienness — different bodies, lifespans, senses, values, "
+            "and communication modes. The differences are the tension AND the "
+            "fascination. Do not simply write a human in a costume.",
+            genre_affinity=frozenset({"romantasy", "sci_fi"}),
+        ),
+        TagDefinition(
+            "Fated Lovers", "fated_lovers", "relationship_type",
+            "Cosmically destined romantic connection",
+            "The romantic leads are cosmically destined — prophecy, soul bonds, "
+            "or divine design draws them together. But fate provides the "
+            "CONNECTION, not the relationship. They must still choose each "
+            "other. The tension is whether destiny is a gift or a cage.",
+            genre_affinity=frozenset({"romantasy", "epic_fantasy"}),
+        ),
+        TagDefinition(
+            "Forbidden Love", "forbidden_love", "relationship_type",
+            "Romance forbidden by law, culture, or magic",
+            "The romance is forbidden — by law, culture, faction allegiance, "
+            "or magical taboo. The cost of being together is real and "
+            "escalating. Every stolen moment risks everything. The question "
+            "is whether love is worth what it destroys.",
+            genre_affinity=frozenset({"romantasy", "epic_fantasy"}),
+        ),
+        TagDefinition(
+            "Slow Burn Romance", "slow_burn_romance", "relationship_type",
+            "Agonizingly gradual romantic development",
+            "The romantic tension builds across many chapters. The first kiss "
+            "is an EVENT. Every accidental touch, loaded glance, and almost-"
+            "moment ratchets the tension higher. Delay gratification — make "
+            "the reader ache for it.",
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        TagDefinition(
+            "Enemies to Lovers", "enemies_to_lovers", "relationship_type",
+            "Romance between genuine adversaries",
+            "The romantic leads begin as genuine adversaries. Neither is "
+            "pretending — the hatred is real, and so is the attraction that "
+            "complicates it. The shift from antagonism to vulnerability is "
+            "gradual, reluctant, and earned through shared experience.",
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        TagDefinition(
+            "Power Couple", "power_couple", "relationship_type",
+            "Both leads are formidable in their own right",
+            "Both romantic leads are formidable — powerful, competent, and "
+            "dangerous in their own right. The romance makes them more "
+            "dangerous together. Neither completes the other; they are whole "
+            "people who choose partnership.",
+            genre_affinity=frozenset({"romantasy", "epic_fantasy"}),
+        ),
+    ],
 }
 
 

@@ -438,6 +438,7 @@ class ChapterPipelineRunner:
                     gen_ctx=gen_ctx,
                     novel_settings=novel_settings,
                     genre_label=genre_config.genre_label,
+                    genre_slug=novel_genre,
                 )
 
                 # 5b. Extract scene markers, use clean text downstream
@@ -495,6 +496,7 @@ class ChapterPipelineRunner:
                         gen_ctx=gen_ctx,
                         novel_settings=novel_settings,
                         genre_label=genre_config.genre_label,
+                        genre_slug=novel_genre,
                     )
 
                     # Re-extract scene markers from retry
@@ -713,6 +715,7 @@ class ChapterPipelineRunner:
                     retry_guidance=guidance,
                     novel_settings=novel_settings,
                     genre_label=regen_genre_config.genre_label,
+                    genre_slug=regen_genre,
                 )
 
                 # Save draft

@@ -1438,6 +1438,140 @@ SEED_BANK: dict[str, list[DiversitySeed]] = {
             "and swarms and transforms.",
         ),
     ],
+
+    # ------------------------------------------------------------------
+    # ROMANCE DYNAMIC — how the central romance operates (romantasy)
+    # ------------------------------------------------------------------
+    "romance_dynamic": [
+        DiversitySeed(
+            "romance_political_marriage",
+            "romance_dynamic",
+            "The romance begins as a POLITICAL ARRANGEMENT — marriage of "
+            "convenience, treaty alliance, or diplomatic bond. Neither party "
+            "chose this. Duty came first; feeling arrives uninvited and "
+            "unwelcome. The tension is whether obligation can become genuine.",
+            compatible_tags=frozenset({"political_intrigue", "enemies_to_lovers"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "romance_bodyguard",
+            "romance_dynamic",
+            "One lead is SWORN TO PROTECT the other — oath-bound, duty-driven, "
+            "professional. The power dynamic is inherently unequal. Growing "
+            "attachment threatens their judgment. Every fight could be their "
+            "last, and every quiet moment is stolen from duty.",
+            compatible_tags=frozenset({"slow_burn_romance"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "romance_rival_heirs",
+            "romance_dynamic",
+            "Both leads have LEGITIMATE CLAIM to the same throne, territory, "
+            "or magical inheritance. They are competitors who cannot afford "
+            "to lose — and cannot stop being drawn to each other. Every "
+            "alliance is also a vulnerability.",
+            compatible_tags=frozenset({"enemies_to_lovers", "political_intrigue"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "romance_teacher_student",
+            "romance_dynamic",
+            "One lead TEACHES the other their magic or craft. The power "
+            "imbalance is the tension — authority vs. desire, professional "
+            "boundary vs. growing intimacy. The student must eventually "
+            "equal or surpass the teacher for the relationship to work.",
+            compatible_tags=frozenset({"academy", "slow_burn_romance"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "romance_resurrect",
+            "romance_dynamic",
+            "One lead is DEAD, undead, spirit-bound, or exists across the "
+            "boundary of mortality. The romance crosses the line between "
+            "life and death. Touch may be impossible, time may be running "
+            "out, and the cost of bridging the gap may be one of them.",
+            compatible_tags=frozenset({"dark", "horror"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "romance_second_chance",
+            "romance_dynamic",
+            "The leads WERE together once and it ended badly. Years later, "
+            "circumstances force them back into each other's orbit. Old "
+            "wounds are still open. They know exactly how to hurt each "
+            "other — and exactly what they lost.",
+            compatible_tags=frozenset({"slow_burn_romance"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "romance_captor",
+            "romance_dynamic",
+            "One lead holds the other CAPTIVE — as prisoner, hostage, or "
+            "magical thrall. The power imbalance is total and must be "
+            "addressed honestly. Attraction under duress is not love. The "
+            "captive must gain genuine agency before the romance can be real.",
+            compatible_tags=frozenset({"enemies_to_lovers", "dark"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+    ],
+
+    # ------------------------------------------------------------------
+    # MAGIC-ROMANCE INTERACTION — how magic intersects with love
+    # ------------------------------------------------------------------
+    "magic_romance_interaction": [
+        DiversitySeed(
+            "magic_complementary",
+            "magic_romance_interaction",
+            "The romantic leads practice FUNDAMENTALLY DIFFERENT magic "
+            "traditions that are unexpectedly complementary. Alone, each is "
+            "limited. Together, their combined abilities create something "
+            "neither could achieve solo. The magic incentivizes partnership "
+            "but the relationship must be real, not transactional.",
+            compatible_tags=frozenset({"power_couple"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "magic_power_gap",
+            "magic_romance_interaction",
+            "There is a MASSIVE POWER DISPARITY between the romantic leads. "
+            "One is near-godlike; the other is mundane or barely gifted. "
+            "The gap creates dependency, resentment, and the central "
+            "question: can a relationship between unequals ever be truly "
+            "equal? The weaker lead must matter for reasons beyond power.",
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "magic_forbidden_pairing",
+            "magic_romance_interaction",
+            "Their magic types are ANTAGONISTIC or TABOO when combined. "
+            "Being close is physically dangerous — their powers destabilize, "
+            "cancel, or corrupt each other. Separation is safe but "
+            "unbearable. Every touch is a calculated risk.",
+            compatible_tags=frozenset({"forbidden_love"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "magic_shared_bond",
+            "magic_romance_interaction",
+            "A MAGICAL BOND was imposed on them — curse, ritual accident, "
+            "divine meddling, or emergency spell. They share sensations, "
+            "emotions, or power whether they want to or not. They must "
+            "navigate forced intimacy while discovering whether real "
+            "feeling grows underneath the magical compulsion.",
+            compatible_tags=frozenset({"fated_lovers"}),
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+        DiversitySeed(
+            "magic_no_connection",
+            "magic_romance_interaction",
+            "Magic and romance are ENTIRELY SEPARATE axes. Love does not "
+            "power anything, amplify anything, or unlock anything. The "
+            "magic system is coldly indifferent to emotional bonds. This "
+            "means the romance has to stand on its own — no magical "
+            "shortcuts to intimacy, no fate, just two people choosing.",
+            genre_affinity=frozenset({"romantasy"}),
+        ),
+    ],
 }
 
 

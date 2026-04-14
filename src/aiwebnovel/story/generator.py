@@ -36,6 +36,7 @@ class ChapterGenerator:
         chapter_number: int,
         novel_settings: Any | None = None,
         genre_label: str = "progression fantasy",
+        genre_slug: str = "progression_fantasy",
     ) -> dict[str, str]:
         """Build template context dict from AssembledContext and chapter plan."""
         sections = context.sections
@@ -76,15 +77,61 @@ class ChapterGenerator:
             "target_tension": str(
                 getattr(chapter_plan, "target_tension", None) or "0.5"
             ),
-            "content_rating_directive": self._content_rating_directive(novel_settings),
+            "content_rating_directive": self._content_rating_directive(
+                novel_settings, genre=genre_slug,
+            ),
         }
 
     @staticmethod
-    def _content_rating_directive(novel_settings: Any | None) -> str:
-        """Build content rating directive for the LLM."""
+    def _content_rating_directive(
+        novel_settings: Any | None,
+        genre: str = "progression_fantasy",
+    ) -> str:
+        """Build content rating directive for the LLM.
+
+        Romantasy gets genre-specific directives that explicitly address
+        sexual content at each rating level.
+        """
         if not novel_settings or not hasattr(novel_settings, "content_rating"):
             return ""
         rating = novel_settings.content_rating
+
+        # Genre-specific overrides for romantasy
+        if genre == "romantasy":
+            romantasy_directives = {
+                "everyone": (
+                    "CONTENT RATING: Everyone — No graphic violence, no "
+                    "romance beyond friendship, no dark themes. Keep it "
+                    "suitable for all ages."
+                ),
+                "teen": (
+                    "CONTENT RATING: Teen — Romantic tension and longing "
+                    "are encouraged. Kissing and emotional intimacy are "
+                    "fine. Fade to black before anything physical beyond "
+                    "that. Mild peril and dark themes acceptable."
+                ),
+                "mature": (
+                    "CONTENT RATING: Mature — Sexual content is permitted. "
+                    "Intimate scenes can be depicted with sensory detail — "
+                    "bodies, sensation, desire. Keep it tasteful but do not "
+                    "fade to black. Limit to 1-2 intimate scenes per "
+                    "chapter. Graphic violence, dark themes, and complex "
+                    "moral situations are acceptable."
+                ),
+                "adult": (
+                    "CONTENT RATING: Adult — Frequent, graphic sexual "
+                    "content is expected and encouraged. Depictions of "
+                    "kink, BDSM, and fetish content are fair game. Write "
+                    "sex scenes with the same craft as any other scene — "
+                    "sensory, emotionally grounded, character-revealing. "
+                    "Explicit consent must be present or clearly implied. "
+                    "Do NOT depict rape or sexual assault graphically. "
+                    "Violence, dark themes, and mature situations are all "
+                    "acceptable."
+                ),
+            }
+            return romantasy_directives.get(rating, "")
+
         directives = {
             "everyone": (
                 "CONTENT RATING: Everyone — No graphic violence, no romance beyond "
@@ -118,11 +165,13 @@ class ChapterGenerator:
         gen_ctx: GenerationContext | None = None,
         novel_settings: Any | None = None,
         genre_label: str = "progression fantasy",
+        genre_slug: str = "progression_fantasy",
     ) -> str:
         """Generate chapter text via LLM. Returns the raw prose."""
         prompt_ctx = self._build_prompt_context(
             context, chapter_plan, chapter_number, novel_settings,
             genre_label=genre_label,
+            genre_slug=genre_slug,
         )
 
         system, user = CHAPTER_GENERATION.render(**prompt_ctx)
@@ -177,11 +226,13 @@ class ChapterGenerator:
         publish_callback: Callable[[str], Any] | None = None,
         novel_settings: Any | None = None,
         genre_label: str = "progression fantasy",
+        genre_slug: str = "progression_fantasy",
     ) -> str:
         """Stream chapter generation, calling publish_callback with each token."""
         prompt_ctx = self._build_prompt_context(
             context, chapter_plan, chapter_number, novel_settings,
             genre_label=genre_label,
+            genre_slug=genre_slug,
         )
 
         system, user = CHAPTER_GENERATION.render(**prompt_ctx)
