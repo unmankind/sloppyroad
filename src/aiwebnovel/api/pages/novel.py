@@ -100,6 +100,7 @@ async def novel_new_form(
     request: Request,
     title: str = Form("", max_length=200),
     genre: str = Form("progression_fantasy"),
+    content_rating: str = Form("teen"),
     auto_title: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
@@ -143,6 +144,10 @@ async def novel_new_form(
     if genre not in ALLOWED_GENRES:
         genre = "progression_fantasy"
 
+    _ALLOWED_RATINGS = {"everyone", "teen", "mature", "adult"}
+    if content_rating not in _ALLOWED_RATINGS:
+        content_rating = "teen"
+
     # Parse multi-value tags from form
     form_data = await request.form()
     raw_tags = form_data.getlist("tags")
@@ -182,10 +187,17 @@ async def novel_new_form(
     # Create empty stats row
     stats = NovelStats(novel_id=novel.id)
     db.add(stats)
+
+    # Create NovelSettings with content rating
+    novel_settings = NovelSettings(
+        novel_id=novel.id,
+        content_rating=content_rating,
+    )
+    db.add(novel_settings)
     await db.flush()
 
     # Generate diversity seeds weighted by author's selected tags
-    seeds = select_seeds(author_tags=tag_slugs)
+    seeds = select_seeds(author_tags=tag_slugs, genre=genre)
     for seed in seeds:
         novel_seed = NovelSeed(
             novel_id=novel.id,

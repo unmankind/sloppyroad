@@ -166,6 +166,19 @@
         </select>
       </div>
 
+      <div class="mb-lg">
+        <label for="content_rating" class="text-sm text-muted mb-xs" style="display: block;">Content Rating</label>
+        <select id="content_rating" name="content_rating"
+                class="form-input"
+                style="width: 100%; padding: 0.75rem 1rem; background: var(--ink-800); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--parchment-100); font-size: 1rem;">
+          <option value="everyone">Everyone</option>
+          <option value="teen" selected>Teen</option>
+          <option value="mature">Mature</option>
+          <option value="adult">Adult</option>
+        </select>
+        <p class="text-xs mt-xs" style="color: var(--ink-300);">Controls violence, romance, and sexual content intensity.</p>
+      </div>
+
       <!-- Tag Picker -->
       <div class="tag-picker">
         <div class="flex justify-between items-center mb-xs">
